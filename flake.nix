@@ -54,6 +54,7 @@
           "rocket-chat"
           "vlc"
           "wireshark"
+          "balenaetcher"
           "utm"
         ];
       };
