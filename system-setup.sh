@@ -47,7 +47,7 @@ echo ""
 
 # Prompt user to continue or exit
 echo "Do you want to continue with the setup? (y/n)"
-read -p "Enter your choice: " choice
+read -p "Enter your choice: " choice < /dev/tty
 if [[ ! "$choice" =~ ^[Yy]$ ]]; then
     echo "Setup aborted. Exiting..."
     exit 0
