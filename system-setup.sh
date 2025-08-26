@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Cool Nix-themed ASCII art and startup prompt
 echo -e "\033[1;34m" # Blue for a cool Nix vibe
 cat <<'EOF'
@@ -33,7 +32,7 @@ cat <<'EOF'
 EOF
 echo -e "\033[0m" # Reset color
 echo "🚀 Welcome to Doug's Nix-Darwin System Setup! 🌌"
-echo "👟 Have Your Sneaker Net Secrets Transfer Ready! 💻"
+echo "🔐 Have your secrets ready to transfers via sneaker net! 👟🌎💻"
 echo ""
 
 # Explanation of what the script will do
@@ -52,66 +51,6 @@ if [[ ! "$choice" =~ ^[Yy]$ ]]; then
   echo "Setup aborted. Exiting..."
   exit 0
 fi
-echo "----------------------------------------"
-
-# Package selection TUI
-echo "📦 Package Selection"
-echo "Choose which Homebrew packages to install:"
-echo ""
-
-# Extract packages from flake.nix
-packages=$(grep -A 50 "casks = \[" /private/etc/nix-darwin/flake.nix | grep -E '^           "[^"]+"$' | sed 's/           "//;s/"//')
-
-# Convert to array
-IFS=$'\n' read -r -d '' -a package_array <<<"$packages"
-
-# Create indexed array for categories with priority ordering
-categories=("Terminal" "Productivity" "Communication" "Development" "Media" "Security" "Utilities" "Web")
-
-get_packages_for_category() {
-    case "$1" in
-        "Terminal") echo "ghostty" ;;
-        "Productivity") echo "raycast appflowy libreoffice ticktick" ;;
-        "Communication") echo "discord rocket-chat telegram" ;;
-        "Development") echo "docker utm" ;;
-        "Media") echo "adobe-creative-cloud vlc" ;;
-        "Security") echo "bitwarden viscosity wireshark" ;;
-        "Utilities") echo "balenaetcher transmission xquartz" ;;
-        "Web") echo "arc" ;;
-    esac
-}
-
-# Track selected packages
-selected_packages=()
-
-for category in "${categories[@]}"; do
-  echo "== $category =="
-  packages=$(get_packages_for_category "$category")
-  for package in $packages; do
-    if [[ " ${package_array[*]} " =~ " $package " ]]; then
-      echo -n "Install $package? (y/n): "
-      read -p "" choice </dev/tty
-      if [[ "$choice" =~ ^[Yy]$ ]]; then
-        selected_packages+=("$package")
-        echo "✅ $package will be installed"
-      else
-        echo "❌ $package will be skipped"
-      fi
-    fi
-  done
-  echo ""
-done
-
-# Comment out non-selected packages in flake.nix
-echo "Updating flake.nix with your selections..."
-for package in "${package_array[@]}"; do
-  if [[ ! " ${selected_packages[*]} " =~ " $package " ]]; then
-    # Comment out the package
-    sed -i.bak "s/           \"$package\"/           # \"$package\"/" /private/etc/nix-darwin/flake.nix
-  fi
-done
-
-echo "✅ Package selection complete!"
 echo "----------------------------------------"
 
 # Install Determinate Nix
@@ -145,4 +84,4 @@ sudo darwin-rebuild switch
 
 # Sneaker net reminder at the end
 echo "👟 Reminder: Don't forget to copy your secrets (e.g., SSH keys) into ~/.ssh via sneaker net! 💻"
-echo "🎉 Setup complete! Your system is ready to roll! 🚀"
+echo "🎉 Setup complete! Your system is ready to rock and roll! 🤘🏻🎸🚀"
