@@ -1,6 +1,6 @@
 # nix-darwin
 
-1. Get yourself a new Mac or a freshly re-installed macOS
+1. Get yourself a new Mac or a freshly re-installed one.
 
 2. Open terminal and run:
 

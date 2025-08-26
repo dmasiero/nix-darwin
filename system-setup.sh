@@ -1,5 +1,4 @@
 #!/bin/bash
-
 # Cool Nix-themed ASCII art and startup prompt
 echo -e "\033[1;34m" # Blue for a cool Nix vibe
 cat <<'EOF'
@@ -33,7 +32,7 @@ cat <<'EOF'
 EOF
 echo -e "\033[0m" # Reset color
 echo "🚀 Welcome to Doug's Nix-Darwin System Setup! 🌌"
-echo "👟 Have Your Sneaker Net Secrets Transfer Ready! 💻"
+echo "🔐 Have your secrets ready to transfers via sneaker net! 👟🌎💻"
 echo ""
 
 # Explanation of what the script will do
@@ -87,4 +86,4 @@ sudo darwin-rebuild switch
 
 # Sneaker net reminder at the end
 echo "👟 Reminder: Don't forget to copy your secrets (e.g., SSH keys) into ~/.ssh via sneaker net! 💻"
-echo "🎉 Setup complete! Your system is ready to roll! 🚀"
+echo "🎉 Setup complete! Your system is ready to rock and roll! 🤘🏻🎸🚀"
