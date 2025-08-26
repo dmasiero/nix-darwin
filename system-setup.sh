@@ -1,8 +1,8 @@
 #!/bin/bash
 
 # Cool Nix-themed ASCII art and startup prompt
-echo -e "\033[1;34m"  # Blue for a cool Nix vibe
-cat << 'EOF'
+echo -e "\033[1;34m" # Blue for a cool Nix vibe
+cat <<'EOF'
                 ___          ______         ___               
                J@@@@,        '@@@@@@,     ,@@@@p              
                @@@B@@L        `@@@@@@_   ,@@@@@@              
@@ -31,10 +31,10 @@ cat << 'EOF'
                @@@@@@     %@@@@@g         Q@@@@@`             
                 @@BP       "BBBBBB         t@@B               
 EOF
-echo -e "\033[0m"  # Reset color
-
+echo -e "\033[0m" # Reset color
 echo "🚀 Welcome to Doug's Nix-Darwin System Setup! 🌌"
 echo "👟 Have Your Sneaker Net Secrets Transfer Ready! 💻"
+echo ""
 
 # Explanation of what the script will do
 echo "This script will:"
@@ -47,10 +47,10 @@ echo ""
 
 # Prompt user to continue or exit
 echo "Do you want to continue with the setup? (y/n)"
-read -p "Enter your choice: " choice < /dev/tty
+read -p "Enter your choice: " choice </dev/tty
 if [[ ! "$choice" =~ ^[Yy]$ ]]; then
-    echo "Setup aborted. Exiting..."
-    exit 0
+  echo "Setup aborted. Exiting..."
+  exit 0
 fi
 echo "----------------------------------------"
 
