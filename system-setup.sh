@@ -54,66 +54,6 @@ if [[ ! "$choice" =~ ^[Yy]$ ]]; then
 fi
 echo "----------------------------------------"
 
-# Package selection TUI
-echo "📦 Package Selection"
-echo "Choose which Homebrew packages to install:"
-echo ""
-
-# Extract packages from flake.nix
-packages=$(grep -A 50 "casks = \[" /private/etc/nix-darwin/flake.nix | grep -E '^           "[^"]+"$' | sed 's/           "//;s/"//')
-
-# Convert to array
-IFS=$'\n' read -r -d '' -a package_array <<<"$packages"
-
-# Create indexed array for categories with priority ordering
-categories=("Terminal" "Productivity" "Communication" "Development" "Media" "Security" "Utilities" "Web")
-
-get_packages_for_category() {
-    case "$1" in
-        "Terminal") echo "ghostty" ;;
-        "Productivity") echo "raycast appflowy libreoffice ticktick" ;;
-        "Communication") echo "discord rocket-chat telegram" ;;
-        "Development") echo "docker utm" ;;
-        "Media") echo "adobe-creative-cloud vlc" ;;
-        "Security") echo "bitwarden viscosity wireshark" ;;
-        "Utilities") echo "balenaetcher transmission xquartz" ;;
-        "Web") echo "arc" ;;
-    esac
-}
-
-# Track selected packages
-selected_packages=()
-
-for category in "${categories[@]}"; do
-  echo "== $category =="
-  packages=$(get_packages_for_category "$category")
-  for package in $packages; do
-    if [[ " ${package_array[*]} " =~ " $package " ]]; then
-      echo -n "Install $package? (y/n): "
-      read -p "" choice </dev/tty
-      if [[ "$choice" =~ ^[Yy]$ ]]; then
-        selected_packages+=("$package")
-        echo "✅ $package will be installed"
-      else
-        echo "❌ $package will be skipped"
-      fi
-    fi
-  done
-  echo ""
-done
-
-# Comment out non-selected packages in flake.nix
-echo "Updating flake.nix with your selections..."
-for package in "${package_array[@]}"; do
-  if [[ ! " ${selected_packages[*]} " =~ " $package " ]]; then
-    # Comment out the package
-    sed -i.bak "s/           \"$package\"/           # \"$package\"/" /private/etc/nix-darwin/flake.nix
-  fi
-done
-
-echo "✅ Package selection complete!"
-echo "----------------------------------------"
-
 # Install Determinate Nix
 echo "Installing Determinate Nix..."
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
@@ -134,6 +74,8 @@ eval "$(/opt/homebrew/bin/brew shellenv)"
 echo "Cloning Nix Darwin configuration..."
 sudo git clone https://github.com/dmasiero/nix-darwin.git /etc/nix-darwin
 sudo chown -R "$USER":staff /etc/nix-darwin
+
+
 
 # Install Nix Darwin
 echo "Installing Nix Darwin..."
