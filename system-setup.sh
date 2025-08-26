@@ -63,7 +63,7 @@ echo ""
 packages=$(grep -A 50 "casks = \[" /private/etc/nix-darwin/flake.nix | grep -E '^           "[^"]+"$' | sed 's/           "//;s/"//')
 
 # Convert to array
-IFS=$'\n' read -r -d '' -a package_array <<< "$packages"
+IFS=$'\n' read -r -d '' -a package_array <<<"$packages"
 
 # Create associative array for categories with priority ordering
 declare -A categories
@@ -80,35 +80,34 @@ categories["Web"]="arc"
 selected_packages=()
 
 for category in "${!categories[@]}"; do
-    echo "== $category =="
-    for package in ${categories[$category]}; do
-        if [[ " ${package_array[*]} " =~ " $package " ]]; then
-            echo -n "Install $package? (y/n): "
-            read -p "" choice </dev/tty
-            if [[ "$choice" =~ ^[Yy]$ ]]; then
-                selected_packages+=("$package")
-                echo "✅ $package will be installed"
-            else
-                echo "❌ $package will be skipped"
-            fi
-        fi
-    done
-    echo ""
+  echo "== $category =="
+  for package in ${categories[$category]}; do
+    if [[ " ${package_array[*]} " =~ " $package " ]]; then
+      echo -n "Install $package? (y/n): "
+      read -p "" choice </dev/tty
+      if [[ "$choice" =~ ^[Yy]$ ]]; then
+        selected_packages+=("$package")
+        echo "✅ $package will be installed"
+      else
+        echo "❌ $package will be skipped"
+      fi
+    fi
+  done
+  echo ""
 done
 
 # Comment out non-selected packages in flake.nix
 echo "Updating flake.nix with your selections..."
 for package in "${package_array[@]}"; do
-    if [[ ! " ${selected_packages[*]} " =~ " $package " ]]; then
-        # Comment out the package
-        sed -i.bak "s/           \"$package\"/           # \"$package\"/" /private/etc/nix-darwin/flake.nix
-    fi
+  if [[ ! " ${selected_packages[*]} " =~ " $package " ]]; then
+    # Comment out the package
+    sed -i.bak "s/           \"$package\"/           # \"$package\"/" /private/etc/nix-darwin/flake.nix
+  fi
 done
 
 echo "✅ Package selection complete!"
 echo "----------------------------------------"
 
-# Rest of the script (unchanged)
 # Install Determinate Nix
 echo "Installing Determinate Nix..."
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
