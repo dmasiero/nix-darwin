@@ -65,23 +65,29 @@ packages=$(grep -A 50 "casks = \[" /private/etc/nix-darwin/flake.nix | grep -E '
 # Convert to array
 IFS=$'\n' read -r -d '' -a package_array <<<"$packages"
 
-# Create associative array for categories with priority ordering
-declare -A categories
-categories["Terminal"]="ghostty"
-categories["Productivity"]="raycast appflowy libreoffice ticktick"
-categories["Communication"]="discord rocket-chat telegram"
-categories["Development"]="docker utm"
-categories["Media"]="adobe-creative-cloud vlc"
-categories["Security"]="bitwarden viscosity wireshark"
-categories["Utilities"]="balenaetcher transmission xquartz"
-categories["Web"]="arc"
+# Create indexed array for categories with priority ordering
+categories=("Terminal" "Productivity" "Communication" "Development" "Media" "Security" "Utilities" "Web")
+
+get_packages_for_category() {
+    case "$1" in
+        "Terminal") echo "ghostty" ;;
+        "Productivity") echo "raycast appflowy libreoffice ticktick" ;;
+        "Communication") echo "discord rocket-chat telegram" ;;
+        "Development") echo "docker utm" ;;
+        "Media") echo "adobe-creative-cloud vlc" ;;
+        "Security") echo "bitwarden viscosity wireshark" ;;
+        "Utilities") echo "balenaetcher transmission xquartz" ;;
+        "Web") echo "arc" ;;
+    esac
+}
 
 # Track selected packages
 selected_packages=()
 
-for category in "${!categories[@]}"; do
+for category in "${categories[@]}"; do
   echo "== $category =="
-  for package in ${categories[$category]}; do
+  packages=$(get_packages_for_category "$category")
+  for package in $packages; do
     if [[ " ${package_array[*]} " =~ " $package " ]]; then
       echo -n "Install $package? (y/n): "
       read -p "" choice </dev/tty
