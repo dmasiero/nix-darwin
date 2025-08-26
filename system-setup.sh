@@ -76,14 +76,15 @@ echo "Cloning Nix Darwin configuration..."
 sudo git clone https://github.com/dmasiero/nix-darwin.git /etc/nix-darwin
 sudo chown -R "$USER":staff /etc/nix-darwin
 
-# Copy in Secrets via Sneaker Net to ~/.ssh
-# 👟🌎💻
-echo "Please copy secrets into ~/.ssh now."
-read -p "Press Enter when done..."
-echo "Secrets copied! 🔒"
-
 # Install Nix Darwin
 echo "Installing Nix Darwin..."
 sudo nix run nix-darwin/master#darwin-rebuild -- switch
+
+# Additional darwin-rebuild switch
+echo "Running additional darwin-rebuild switch..."
+sudo darwin-rebuild switch
+
+# Sneaker net reminder at the end
+echo "👟 Reminder: Don't forget to copy your secrets (e.g., SSH keys) into ~/.ssh via sneaker net! 💻"
 
 echo "🎉 Setup complete! Your system is ready to roll! 🚀"
