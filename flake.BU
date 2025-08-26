@@ -1,0 +1,130 @@
+{
+  description = "Example nix-darwin system flake";
+  inputs = {
+    nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
+    nix-darwin.url = "github:nix-darwin/nix-darwin/master";
+    nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
+    home-manager.url = "https://flakehub.com/f/nix-community/home-manager/0.2505.4807.tar.gz";
+  };
+
+  outputs = inputs@{ self, home-manager, nix-darwin, nixpkgs }:
+  let
+    configuration = { pkgs, lib, ... }:
+    let
+      # Import your hotkey disabling module.
+      # Adjust the path if necessary, e.g., ./modules/disable-apple-default-hotkeys.nix
+      disabledHotkeysSettings = import ./disable-apple-default-hotkeys.nix { inherit lib; };
+    in
+    {
+      # Apply the hotkey disabling settings
+      system.defaults.CustomUserPreferences = {
+        # Your other custom preferences
+        # e.g., "com.some.other.domain" = { someSetting = true; };
+      } // disabledHotkeysSettings;
+
+      # Activation script to apply preferences without requiring logout/login
+      system.activationScripts.postActivation.text = ''
+        sudo -u doug /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+      '';
+
+      # List packages installed in system profile
+      environment.systemPackages = with pkgs; [
+      ];
+
+      # Homebrew
+      homebrew = {
+        enable = true;
+        taps = [
+          "sst/tap"
+        ];
+        brews = [
+          "sst/tap/opencode"
+        ];
+        casks = [
+          # Communication
+          "discord"
+          "rocket-chat"
+          "telegram"
+
+          # Development
+          "docker"
+          "utm"
+
+          # Media
+          "adobe-creative-cloud"
+          "vlc"
+
+          # Productivity
+          "appflowy"
+          "libreoffice"
+          "raycast"
+          "ticktick"
+
+          # Security
+          "bitwarden"
+          "viscosity"
+          "wireshark"
+
+          # Terminal
+          "ghostty"
+
+          # Utilities
+          "balenaetcher"
+          "transmission"
+          "xquartz"
+
+          # Web
+          "arc"
+        ];
+      };
+
+      # Fonts
+      fonts.packages = with pkgs; [
+        nerd-fonts.fira-code
+        nerd-fonts.jetbrains-mono
+      ];
+
+      # Disable Determinate's Nix
+      nix.enable = false;
+
+      # Enable experimental features
+      nix.settings.experimental-features = "nix-command flakes";
+
+      # Enable alternative shell support
+      # programs.fish.enable = true;
+
+      # Set Git commit hash for darwin-version
+      system.configurationRevision = self.rev or self.dirtyRev or null;
+
+      # Used for backwards compatibility
+      system.stateVersion = 6;
+
+      # The platform the configuration will be used on
+      nixpkgs.hostPlatform = "aarch64-darwin";
+
+      # System primary user
+      system.primaryUser = "doug";
+
+      # Finder Settings
+      system.defaults.finder.FXPreferredViewStyle = "Nlsv";
+
+      # Dock Settings
+      system.defaults.dock = {
+        autohide = true;
+        show-recents = false;
+        persistent-others = [];
+        persistent-apps = [
+          { app = "/Applications/Ghostty.app"; }
+          { app = "/Applications/Safari.app"; }
+        ];
+      };
+    };
+  in
+  {
+    # Build darwin flake using:
+    # $ darwin-rebuild build --flake .#Dougs-Virtual-Machine
+    darwinConfigurations."Dougs-Virtual-Machine" = nix-darwin.lib.darwinSystem {
+      modules = [ configuration ];
+    };
+  };
+}
