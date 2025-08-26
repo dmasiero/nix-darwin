@@ -16,10 +16,15 @@
       disabledHotkeysSettings = import ./disable-apple-default-hotkeys.nix { inherit lib; };
     in
     {
-      # Apply the hotkey disabling settings
-      system.defaults.CustomUserPreferences = {
-        # Your other custom preferences
-      } // disabledHotkeysSettings;
+        # Apply the hotkey disabling settings
+        system.defaults.WindowManager = {
+          StandardHideWidgets = true; # Hide widgets on desktop
+          StageManagerHideWidgets = true; # Hide widgets in Stage Manager
+          EnableStandardClickToShowDesktop = false; # Disable clicking desktop to show it
+          HideDesktop = true; # Hide desktop items
+        };
+        system.defaults.CustomUserPreferences = {
+        } // disabledHotkeysSettings;
 
       # Activation script to apply preferences without requiring logout/login
       system.activationScripts.postActivation.text = ''
@@ -97,16 +102,23 @@
       # Finder Settings
       system.defaults.finder.FXPreferredViewStyle = "Nlsv";
 
-      # Dock Settings
-      system.defaults.dock = {
-        autohide = true;
-        show-recents = false;
-        persistent-others = [];
-        persistent-apps = [
-          { app = "/Applications/Ghostty.app"; }
-          { app = "/Applications/Safari.app"; }
-        ];
-      };
+        # Dock Settings
+        system.defaults.dock = {
+          autohide = true;
+          show-recents = false;
+          persistent-others = [];
+           persistent-apps = [
+             { app = "/Applications/Ghostty.app"; }
+             { app = "/Applications/Safari.app"; }
+           ];
+          # Hot corner settings
+          wvous-tr-corner = 10; # Top-right: Put Display to Sleep
+          wvous-br-corner = 12; # Bottom-right: Quick Note
+          wvous-tl-corner = 1; # Top-left: Disabled
+          wvous-bl-corner = 1; # Bottom-left: Disabled
+        };
+
+
 
       # Define user doug
       users.users.doug = {
@@ -126,13 +138,16 @@
           # Configure home-manager
           home-manager.useGlobalPkgs = true;
           home-manager.useUserPackages = true;
-          home-manager.users.doug = { pkgs, ... }: {
+          home-manager.users.doug = { pkgs, lib, ... }: {
             # Home Manager user settings
-            home.username = "doug";
-            home.homeDirectory = "/Users/doug";
-            home.stateVersion = "25.05";
+             home.username = "doug";
+             home.homeDirectory = "/Users/doug";
+             home.stateVersion = "25.05";
 
-            # User packages
+             # Disable Nixpkgs release check
+             home.enableNixpkgsReleaseCheck = false;
+
+             # User packages
             home.packages = with pkgs; [
               neovim
               neofetch
@@ -150,7 +165,7 @@
             # zsh Configuration
             programs.zsh = {
               enable = true;
-              initExtra = ''
+              initContent = ''
                 [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
                 bindkey '^_' fzf_history_search
                 # masiero - smanager

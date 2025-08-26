@@ -54,6 +54,60 @@ if [[ ! "$choice" =~ ^[Yy]$ ]]; then
 fi
 echo "----------------------------------------"
 
+# Package selection TUI
+echo "📦 Package Selection"
+echo "Choose which Homebrew packages to install:"
+echo ""
+
+# Extract packages from flake.nix
+packages=$(grep -A 50 "casks = \[" /private/etc/nix-darwin/flake.nix | grep -E '^           "[^"]+"$' | sed 's/           "//;s/"//')
+
+# Convert to array
+IFS=$'\n' read -r -d '' -a package_array <<< "$packages"
+
+# Create associative array for categories with priority ordering
+declare -A categories
+categories["Terminal"]="ghostty"
+categories["Productivity"]="raycast appflowy libreoffice ticktick"
+categories["Communication"]="discord rocket-chat telegram"
+categories["Development"]="docker utm"
+categories["Media"]="adobe-creative-cloud vlc"
+categories["Security"]="bitwarden viscosity wireshark"
+categories["Utilities"]="balenaetcher transmission xquartz"
+categories["Web"]="arc"
+
+# Track selected packages
+selected_packages=()
+
+for category in "${!categories[@]}"; do
+    echo "== $category =="
+    for package in ${categories[$category]}; do
+        if [[ " ${package_array[*]} " =~ " $package " ]]; then
+            echo -n "Install $package? (y/n): "
+            read -p "" choice </dev/tty
+            if [[ "$choice" =~ ^[Yy]$ ]]; then
+                selected_packages+=("$package")
+                echo "✅ $package will be installed"
+            else
+                echo "❌ $package will be skipped"
+            fi
+        fi
+    done
+    echo ""
+done
+
+# Comment out non-selected packages in flake.nix
+echo "Updating flake.nix with your selections..."
+for package in "${package_array[@]}"; do
+    if [[ ! " ${selected_packages[*]} " =~ " $package " ]]; then
+        # Comment out the package
+        sed -i.bak "s/           \"$package\"/           # \"$package\"/" /private/etc/nix-darwin/flake.nix
+    fi
+done
+
+echo "✅ Package selection complete!"
+echo "----------------------------------------"
+
 # Rest of the script (unchanged)
 # Install Determinate Nix
 echo "Installing Determinate Nix..."
@@ -86,5 +140,4 @@ sudo darwin-rebuild switch
 
 # Sneaker net reminder at the end
 echo "👟 Reminder: Don't forget to copy your secrets (e.g., SSH keys) into ~/.ssh via sneaker net! 💻"
-
 echo "🎉 Setup complete! Your system is ready to roll! 🚀"
