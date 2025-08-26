@@ -40,22 +40,40 @@
           "sst/tap/opencode"
         ];
         casks = [
-          "ghostty"
-          "raycast"
-          "viscosity"
-          "docker"
-          "ticktick"
-          "appflowy"
-          "arc"
-          "bitwarden"
-          "xquartz"
-          "transmission"
+          # Communication
           "discord"
           "rocket-chat"
-          "vlc"
-          "wireshark"
-          "balenaetcher"
+          "telegram"
+
+          # Development
+          "docker"
           "utm"
+
+          # Media
+          "adobe-creative-cloud"
+          "vlc"
+
+          # Productivity
+          "appflowy"
+          "libreoffice"
+          "raycast"
+          "ticktick"
+
+          # Security
+          "bitwarden"
+          "viscosity"
+          "wireshark"
+
+          # Terminal
+          "ghostty"
+
+          # Utilities
+          "balenaetcher"
+          "transmission"
+          "xquartz"
+
+          # Web
+          "arc"
         ];
       };
 
