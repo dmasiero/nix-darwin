@@ -39,7 +39,7 @@
             persistent-others = [];
             persistent-apps = [
               { app = "/Applications/Ghostty.app"; }
-              { app = "/Applications/Safari.app"; }
+              { app = "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app"; }
             ];
             wvous-tl-corner = 1;  # Top-left: Disabled
             wvous-tr-corner = 10; # Top-right: Put Display to Sleep
