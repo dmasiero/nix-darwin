@@ -1,5 +1,5 @@
 {
-  description = "Example nix-darwin system flake";
+  description = "Doug's Darwin System Flake";
 
   # Inputs
   inputs = {
@@ -46,7 +46,31 @@
             wvous-bl-corner = 1;  # Bottom-left: Disabled
             wvous-br-corner = 12; # Bottom-right: Quick Note
           };
-          CustomUserPreferences = {} // disabledHotkeysSettings;
+          CustomUserPreferences = {
+            "com.apple.Safari" = {
+              # Session
+              AlwaysRestoreSessionAtLaunch = 1;
+              ExcludePrivateWindowWhenRestoringSessionAtLaunch = 1;
+              # Start Page
+              HideStartPageRecentlyClosedTabsEmptyItemView = 0;
+              ShowBackgroundImageInFavorites = 0;
+              # UI
+              ShowOverlayStatusBar = 1;
+              ShowFullURLInSmartSearchField = 1;
+              # Downloads
+              AutoOpenSafeDownloads = 0;
+              # Passwords
+              PMHidePasswordsSettingsInSafari = 1;
+              # AutoFill
+              AutoFillCreditCardData = 0;
+              AutoFillFromAddressBook = 0;
+              AutoFillFromiCloudKeychain = 0;
+              AutoFillMiscellaneousForms = 0;
+              AutoFillPasswords = 0;
+              # Search
+              SuppressSearchSuggestions = 1;
+            };
+          } // disabledHotkeysSettings;
         };
 
         # Activation Scripts
