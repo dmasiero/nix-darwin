@@ -54,6 +54,9 @@
           sudo -u doug /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
         '';
       };
+      
+      # Platform
+      nixpkgs.hostPlatform = "aarch64-darwin";
 
       # User Configuration
       users.users.doug = {
@@ -82,6 +85,9 @@
         taps = [ "sst/tap" ];
         brews = [ "sst/tap/opencode" ];
         casks = [
+          # Minimums
+          "ghostty"
+          "raycast"
           # Communication
           "discord"
           "rocket-chat"
@@ -95,14 +101,11 @@
           # Productivity
           "appflowy"
           "libreoffice"
-          "raycast"
           "ticktick"
           # Security
           "bitwarden"
           "viscosity"
           "wireshark"
-          # Terminal
-          "ghostty"
           # Utilities
           "balenaetcher"
           "transmission"
@@ -111,9 +114,6 @@
           "arc"
         ];
       };
-
-      # Platform
-      nixpkgs.hostPlatform = "aarch64-darwin";
     };
   in
   {
@@ -154,7 +154,7 @@
                # Environment Variables
                home.sessionVariables = {};
 
-               # ZSH Configuration
+               # zsh Configuration
               programs.zsh = {
                 enable = true;
                 initContent = ''
@@ -187,7 +187,7 @@
                 };
               };
 
-              # TMUX Configuration
+              # tmux Configuration
               programs.tmux = {
                 enable = true;
                 baseIndex = 1;
