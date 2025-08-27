@@ -47,29 +47,29 @@
             wvous-br-corner = 12; # Bottom-right: Quick Note
           };
           CustomUserPreferences = {
-            "com.apple.Safari" = {
-              # Session
-              AlwaysRestoreSessionAtLaunch = 1;
-              ExcludePrivateWindowWhenRestoringSessionAtLaunch = 1;
-              # Start Page
-              HideStartPageRecentlyClosedTabsEmptyItemView = 0;
-              ShowBackgroundImageInFavorites = 0;
-              # UI
-              ShowOverlayStatusBar = 1;
-              ShowFullURLInSmartSearchField = 1;
-              # Downloads
-              AutoOpenSafeDownloads = 0;
-              # Passwords
-              PMHidePasswordsSettingsInSafari = 1;
-              # AutoFill
-              AutoFillCreditCardData = 0;
-              AutoFillFromAddressBook = 0;
-              AutoFillFromiCloudKeychain = 0;
-              AutoFillMiscellaneousForms = 0;
-              AutoFillPasswords = 0;
-              # Search
-              SuppressSearchSuggestions = 1;
-            };
+            # "com.apple.Safari" = {
+            #   # Session
+            #   AlwaysRestoreSessionAtLaunch = 1;
+            #   ExcludePrivateWindowWhenRestoringSessionAtLaunch = 1;
+            #   # Start Page
+            #   HideStartPageRecentlyClosedTabsEmptyItemView = 0;
+            #   ShowBackgroundImageInFavorites = 0;
+            #   # UI
+            #   ShowOverlayStatusBar = 1;
+            #   ShowFullURLInSmartSearchField = 1;
+            #   # Downloads
+            #   AutoOpenSafeDownloads = 0;
+            #   # Passwords
+            #   PMHidePasswordsSettingsInSafari = 1;
+            #   # AutoFill
+            #   AutoFillCreditCardData = 0;
+            #   AutoFillFromAddressBook = 0;
+            #   AutoFillFromiCloudKeychain = 0;
+            #   AutoFillMiscellaneousForms = 0;
+            #   AutoFillPasswords = 0;
+            #   # Search
+            #   SuppressSearchSuggestions = 1;
+            # };
           } // disabledHotkeysSettings;
         };
 

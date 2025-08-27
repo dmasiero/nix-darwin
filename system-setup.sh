@@ -40,7 +40,7 @@ echo "This script will:"
 echo "1. Install Determinate Nix to manage packages and configurations."
 echo "2. Install Homebrew for additional package management."
 echo "3. Clone a Nix Darwin configuration from GitHub to /etc/nix-darwin."
-echo "4. Pause for you to manually copy secrets (e.g., SSH keys) into ~/.ssh."
+echo "4. Launch a TUI for selecting packages."
 echo "5. Install and switch to the Nix Darwin configuration."
 echo ""
 
@@ -69,12 +69,19 @@ echo "Installing Homebrew..."
 echo "Activating Homebrew..."
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
+# Install dialog for TUI
+echo "Installing dialog for package selector..."
+brew install dialog
+
 # Clone Nix Darwin Configuration
 echo "Cloning Nix Darwin configuration..."
 sudo git clone https://github.com/dmasiero/nix-darwin.git /etc/nix-darwin
 sudo chown -R "$USER":staff /etc/nix-darwin
 
-
+# Run Package Selector
+echo "Running package selector to customize your setup..."
+cd /etc/nix-darwin
+./package-selector.sh
 
 # Install Nix Darwin
 echo "Installing Nix Darwin..."
