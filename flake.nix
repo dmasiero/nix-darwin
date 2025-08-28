@@ -283,6 +283,7 @@
                       "~/.ssh/DMMF-20211104"
                       "~/.ssh/id_DAM_20191006"
                       "~/.ssh/batman_rsa"
+                      "~/.ssh/gitea_masiero_doug"
                     ];
                   };
                   "github.com" = {
