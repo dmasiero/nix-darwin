@@ -1,7 +1,6 @@
 {
   description = "Example nix-darwin system flake";
 
-  # Inputs
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
@@ -10,333 +9,592 @@
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  # Outputs
-  outputs = inputs@{ self, home-manager, nix-darwin, nixpkgs }:
-  let
-    configuration = { pkgs, lib, ... }:
+  outputs = inputs@{ self, home-manager, nix-darwin, ... }:
     let
-      disabledHotkeysSettings = import ./disable-apple-default-hotkeys.nix { inherit lib; };
+      configuration = { pkgs, lib, ... }:
+        let
+          disabledHotkeysSettings = import ./disable-apple-default-hotkeys.nix { inherit lib; };
+        in
+        {
+          system = {
+            configurationRevision = self.rev or self.dirtyRev or null;
+            stateVersion = 6;
+            primaryUser = "doug";
+
+            defaults = {
+              WindowManager = {
+                StandardHideWidgets = true;
+                StageManagerHideWidgets = true;
+                EnableStandardClickToShowDesktop = false;
+                HideDesktop = true;
+              };
+              finder.FXPreferredViewStyle = "Nlsv";
+              dock = {
+                autohide = true;
+                show-recents = false;
+                persistent-others = [ ];
+                persistent-apps = [
+                  { app = "/Applications/kitty.app"; }
+                  { app = "/Applications/Helium.app"; }
+                ];
+                wvous-tl-corner = 1;
+                wvous-tr-corner = 10;
+                wvous-bl-corner = 1;
+                wvous-br-corner = 12;
+              };
+              CustomUserPreferences = { } // disabledHotkeysSettings;
+            };
+
+            activationScripts.postActivation.text = ''
+              sudo -u doug /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+            '';
+          };
+
+          nixpkgs = {
+            hostPlatform = "aarch64-darwin";
+            config.allowUnfree = true;
+            overlays = [
+              (final: prev: {
+                pi-coding-agent = prev.callPackage ./pi-coding-agent.nix { };
+                swo-cli = prev.callPackage ./swo-cli.nix { };
+              })
+            ];
+          };
+
+          time.timeZone = "America/New_York";
+
+          users.users.doug = {
+            name = "doug";
+            home = "/Users/doug";
+            shell = pkgs.fish;
+          };
+
+          programs.fish.enable = true;
+
+          nix = {
+            enable = false;
+            settings.experimental-features = "nix-command flakes";
+          };
+
+          environment.systemPackages = with pkgs; [ ];
+
+          fonts.packages = with pkgs; [
+            nerd-fonts.fira-code
+            nerd-fonts.jetbrains-mono
+            nerd-fonts.monaspace
+            font-awesome
+          ];
+
+          homebrew = {
+            enable = true;
+            taps = [ "sst/tap" ];
+            brews = [ "sst/tap/opencode" ];
+            casks = [
+              "helium-browser"
+              "raycast"
+              "discord"
+              "telegram"
+              "docker"
+              "utm"
+              "adobe-creative-cloud"
+              "vlc"
+              "libreoffice"
+              "ticktick"
+              "bitwarden"
+              "viscosity"
+              "wireshark"
+              "balenaetcher"
+              "transmission"
+              "xquartz"
+            ];
+          };
+        };
     in
     {
-      # System Configuration
-      system = {
-        configurationRevision = self.rev or self.dirtyRev or null;
-        stateVersion = 6;
-        primaryUser = "doug";
+      darwinConfigurations."Dougs-Virtual-Machine" = nix-darwin.lib.darwinSystem {
+        modules = [
+          configuration
+          home-manager.darwinModules.home-manager
+          {
+            home-manager = {
+              useGlobalPkgs = true;
+              useUserPackages = true;
+              users.doug = { pkgs, lib, config, ... }:
+                {
+                  home = {
+                    username = "doug";
+                    homeDirectory = "/Users/doug";
+                    stateVersion = "25.05";
+                    enableNixpkgsReleaseCheck = false;
+                  };
 
-        # System Defaults
-        defaults = {
-          WindowManager = {
-            StandardHideWidgets = true;
-            StageManagerHideWidgets = true;
-            EnableStandardClickToShowDesktop = false;
-            HideDesktop = true;
-          };
-          finder.FXPreferredViewStyle = "Nlsv";
-          dock = {
-            autohide = true;
-            show-recents = false;
-            persistent-others = [];
-            persistent-apps = [
-              { app = "/Applications/Ghostty.app"; }
-              { app = "/System/Volumes/Preboot/Cryptexes/App/System/Applications/Safari.app"; }
-            ];
-            wvous-tl-corner = 1;  # Top-left: Disabled
-            wvous-tr-corner = 10; # Top-right: Put Display to Sleep
-            wvous-bl-corner = 1;  # Bottom-left: Disabled
-            wvous-br-corner = 12; # Bottom-right: Quick Note
-          };
-          CustomUserPreferences = {} // disabledHotkeysSettings;
-        };
+                  programs.home-manager.enable = true;
+                  xdg.enable = true;
 
-        # Activation Scripts
-        activationScripts.postActivation.text = ''
-          sudo -u doug /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
-        '';
-      };
-      
-      # Platform
-      nixpkgs.hostPlatform = "aarch64-darwin";
+                  home.packages = with pkgs;
+                    [
+                      bind
+                      fd
+                      font-awesome
+                      fping
+                      fzf
+                      gh
+                      git
+                      htop
+                      keychain
+                      lazygit
+                      mtr
+                      pi-coding-agent
+                      python3
+                      ripgrep
+                      swo-cli
+                      unzip
+                      uv
+                      weechat
+                      wget
+                      whois
+                    ]
+                    ++ lib.optionals (builtins.hasAttr "trzsz-ssh" pkgs) [ pkgs."trzsz-ssh" ]
+                    ++ lib.optionals (builtins.hasAttr "puppet-bolt" pkgs) [ pkgs."puppet-bolt" ];
 
-      # User Configuration
-      users.users.doug = {
-        name = "doug";
-        home = "/Users/doug";
-      };
+                  fonts.fontconfig.enable = true;
 
-      # Nix Configuration
-      nix = {
-        enable = false;
-        settings.experimental-features = "nix-command flakes";
-      };
+                  home.file = {
+                    ".config/lazygit" = {
+                      source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/lazygit";
+                    };
+                    ".pi" = {
+                      source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/pi";
+                    };
+                    ".config/opencode" = {
+                      source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/opencode";
+                    };
+                    ".config/weechat" = {
+                      source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/weechat";
+                    };
+                    ".swo-cli.yml" = {
+                      source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/.swo-cli.yml";
+                    };
+                  };
 
-      # Packages
-      environment.systemPackages = with pkgs; [];
+                  home.activation.ensureDotfilesPiDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+                    mkdir -p /Users/doug/dotfiles/pi
+                  '';
 
-      # Fonts
-      fonts.packages = with pkgs; [
-        nerd-fonts.fira-code
-        nerd-fonts.jetbrains-mono
-      ];
 
-      # Homebrew
-      homebrew = {
-        enable = true;
-        taps = [ "sst/tap" ];
-        brews = [ "sst/tap/opencode" ];
-        casks = [
-          # Minimums
-          "ghostty"
-          "raycast"
-          # Communication
-          "discord"
-          "rocket-chat"
-          "telegram"
-          # Development
-          "docker"
-          "utm"
-          # Media
-          "adobe-creative-cloud"
-          "vlc"
-          # Productivity
-          "appflowy"
-          "libreoffice"
-          "ticktick"
-          # Security
-          "bitwarden"
-          "viscosity"
-          "wireshark"
-          # Utilities
-          "balenaetcher"
-          "transmission"
-          "xquartz"
-          # Web
-          "arc"
+                  programs.fish = {
+                    enable = true;
+
+                    loginShellInit = ''
+                      if type -q keychain
+                        keychain --eval --quiet ~/.ssh/batman_rsa ~/.ssh/id_DAM_20191006 | source
+                      end
+                    '';
+
+                    plugins = [
+                      { name = "bass"; src = pkgs.fishPlugins.bass.src; }
+                    ];
+
+                    shellAliases = {
+                      vi = "nvim";
+                      vim = "nvim";
+                      oc = "opencode";
+                    };
+
+                    interactiveShellInit = ''
+                      set fish_greeting ""
+
+                      if test -f ~/Dev/masiero/smanager/smanager
+                        bass source ~/Dev/masiero/smanager/smanager
+                      end
+
+                      if test -z "$TMUX"
+                          set -l _is_ssh 0
+                          test -n "$SSH_TTY"; and set _is_ssh 1
+                          test -n "$SSH_CONNECTION"; and set _is_ssh 1
+                          test -n "$SSH_CLIENT"; and set _is_ssh 1
+                          if test $_is_ssh -eq 1
+                              if tmux has-session 2>/dev/null
+                                  exec tmux attach-session
+                              else
+                                  exec tmux new-session
+                              end
+                          end
+                      end
+                    '';
+
+                    functions = {
+                      _prompt_duration = ''
+                        set -l ms $argv[1]
+                        set -l s (math --scale=0 $ms / 1000)
+                        if test $s -lt 60
+                            echo -n $s"s"
+                        else if test $s -lt 3600
+                            set -l m (math --scale=0 "$s / 60")
+                            set -l r (math --scale=0 "$s % 60")
+                            if test $r -gt 0
+                                echo -n $m"m "$r"s"
+                            else
+                                echo -n $m"m"
+                            end
+                        else if test $s -lt 86400
+                            set -l h (math --scale=0 "$s / 3600")
+                            set -l m (math --scale=0 "$s % 3600 / 60")
+                            if test $m -gt 0
+                                echo -n $h"h "$m"m"
+                            else
+                                echo -n $h"h"
+                            end
+                        else
+                            set -l d (math --scale=0 "$s / 86400")
+                            set -l h (math --scale=0 "$s % 86400 / 3600")
+                            if test $h -gt 0
+                                echo -n $d"d "$h"h"
+                            else
+                                echo -n $d"d"
+                            end
+                        end
+                      '';
+
+                      _git_info = ''
+                        set -l branch (git symbolic-ref --short HEAD 2>/dev/null)
+                        if test $status -ne 0
+                            set -l sha (git rev-parse --short HEAD 2>/dev/null)
+                            test $status -ne 0; and return
+                            set branch '@'$sha
+                        end
+
+                        set -l dirty ""
+                        if not git diff --quiet 2>/dev/null
+                            set dirty "*"
+                        else if not git diff --cached --quiet 2>/dev/null
+                            set dirty "*"
+                        else
+                            set -l untracked (git ls-files --others --exclude-standard 2>/dev/null | head -1)
+                            if test -n "$untracked"
+                                set dirty "*"
+                            end
+                        end
+
+                        set_color '#585858'
+                        printf ' %s%s' $branch $dirty
+                        set_color normal
+
+                        set -l upstream (git rev-parse --abbrev-ref '@{upstream}' 2>/dev/null)
+                        if test -n "$upstream"
+                            set -l ahead (git rev-list --count '@{upstream}..HEAD' 2>/dev/null)
+                            set -l behind (git rev-list --count 'HEAD..@{upstream}' 2>/dev/null)
+                            if test "$ahead" -gt 0; and test "$behind" -gt 0
+                                set_color cyan
+                                printf '⇣⇡'
+                                set_color normal
+                            else if test "$behind" -gt 0
+                                set_color '#585858'
+                                printf ':'
+                                set_color cyan
+                                printf '⇣'
+                                set_color normal
+                            else if test "$ahead" -gt 0
+                                set_color '#585858'
+                                printf ':'
+                                set_color cyan
+                                printf '⇡'
+                                set_color normal
+                            end
+                        end
+                      '';
+
+                      fish_prompt = ''
+                        set -l last_status $status
+
+                        set_color '#585858'
+                        printf '%s@%s' (whoami) (hostname -s)
+                        set_color normal
+
+                        printf ' '
+                        set_color blue
+                        printf '%s' (prompt_pwd)
+                        set_color normal
+
+                        _git_info
+
+                        if test $CMD_DURATION -ge 1000
+                            printf ' '
+                            set_color yellow
+                            printf '%s' (_prompt_duration $CMD_DURATION)
+                            set_color normal
+                        end
+
+                        printf ' '
+                        if test $last_status -eq 0
+                            set_color magenta
+                        else
+                            set_color red
+                        end
+                        printf '❯'
+                        set_color normal
+                        printf ' '
+                      '';
+                    };
+                  };
+
+                  programs.neovim = {
+                    enable = true;
+                    defaultEditor = true;
+                    plugins = with pkgs.vimPlugins; [
+                      vim-surround
+                      vim-commentary
+                      vim-repeat
+                      vim-unimpaired
+                      vim-fugitive
+                      catppuccin-nvim
+                      lualine-nvim
+                      nvim-web-devicons
+                      gitsigns-nvim
+                      bufferline-nvim
+                      mini-nvim
+                      telescope-nvim
+                      plenary-nvim
+                      telescope-fzf-native-nvim
+                      oil-nvim
+                    ];
+
+                    extraLuaConfig = ''
+                      vim.keymap.set({ "n", "v" }, "<Space>", "<Nop>", { silent = true })
+                      vim.g.mapleader = " "
+                      vim.g.maplocalleader = " "
+                      vim.opt.clipboard = "unnamedplus"
+                      local function paste()
+                        return { vim.fn.split(vim.fn.getreg(""), "\n"), vim.fn.getregtype("") }
+                      end
+                      vim.g.clipboard = {
+                        name = "OSC 52",
+                        copy = {
+                          ["+"] = require("vim.ui.clipboard.osc52").copy("+"),
+                          ["*"] = require("vim.ui.clipboard.osc52").copy("*"),
+                        },
+                        paste = {
+                          ["+"] = paste,
+                          ["*"] = paste,
+                        },
+                      }
+                      vim.api.nvim_set_hl(0, "Normal",     { bg = "none" })
+                      vim.api.nvim_set_hl(0, "NonText",    { bg = "none" })
+                      vim.api.nvim_set_hl(0, "EndOfBuffer", { bg = "none" })
+                      require("mini.pairs").setup()
+                      require("mini.jump").setup()
+
+                      require("oil").setup({
+                        view_options = {
+                          show_hidden = true,
+                          is_always_hidden = function(name, _)
+                            return name == ".."
+                          end,
+                        },
+                        win_options = {
+                          number = false,
+                          relativenumber = false,
+                        },
+                        keymaps = {
+                          ["<BS>"] = "actions.parent",
+                          ["h"] = "actions.parent",
+                          ["-"] = "actions.parent",
+                        },
+                      })
+                      vim.keymap.set("n", "<leader>e", "<CMD>Oil<CR>", { desc = "Open parent directory" })
+
+                      require("catppuccin").setup({ flavour = "mocha", transparent_background = true })
+                      vim.cmd.colorscheme "catppuccin"
+
+                      require("lualine").setup({ options = { theme = "catppuccin", globalstatus = true } })
+
+                      require("telescope").setup({
+                        extensions = {
+                          fzf = {
+                            fuzzy = true,
+                            case_mode = "smart_case",
+                          },
+                        },
+                      })
+
+                      require("gitsigns").setup({
+                        signs = {
+                          add          = { text = "▎" },
+                          change       = { text = "▎" },
+                          delete       = { text = "" },
+                          topdelete    = { text = "" },
+                          changedelete = { text = "▎" },
+                        },
+                        current_line_blame = false,
+                        signcolumn = true,
+                        numhl = false,
+                        linehl = false,
+                        word_diff = false,
+                      })
+
+                      vim.opt.number = true
+                      vim.opt.relativenumber = true
+
+                      vim.api.nvim_create_autocmd({ "InsertEnter" }, {
+                        pattern = "*",
+                        callback = function() vim.opt.relativenumber = false end,
+                      })
+                      vim.api.nvim_create_autocmd({ "InsertLeave" }, {
+                        pattern = "*",
+                        callback = function() vim.opt.relativenumber = true end,
+                      })
+
+                      require("bufferline").setup({
+                        options = {
+                          mode = "buffers",
+                          separator_style = "thin",
+                          always_show_bufferline = false,
+                          show_buffer_close_icons = true,
+                          show_close_icon = false,
+                          color_icons = true,
+                          diagnostics = "nvim_lsp",
+                        },
+                      })
+
+                      vim.keymap.set("n", "<Tab>",   "<cmd>BufferLineCycleNext<CR>", { silent = true })
+                      vim.keymap.set("n", "<S-Tab>", "<cmd>BufferLineCyclePrev<CR>", { silent = true })
+
+                      for i = 1, 9 do
+                        vim.keymap.set("n", "<leader>" .. i, "<cmd>BufferLineGoToBuffer " .. i .. "<CR>", { silent = true })
+                      end
+                      vim.keymap.set("n", "<leader>$", "<cmd>BufferLineGoToBuffer -1<CR>", { desc = "Last buffer" })
+
+                      require("telescope").load_extension("fzf")
+                      local builtin = require("telescope.builtin")
+                      vim.keymap.set("n", "<leader>ff", builtin.find_files, { desc = "Find files" })
+                      vim.keymap.set("n", "<leader>fg", builtin.live_grep,  { desc = "Grep project" })
+                      vim.keymap.set("n", "<leader>fb", builtin.buffers,    { desc = "Buffers" })
+                      vim.keymap.set("n", "<leader>fr", builtin.oldfiles,   { desc = "Recent files" })
+                    '';
+                  };
+
+                  programs.tmux = {
+                    enable = true;
+                    baseIndex = 1;
+                    historyLimit = 10000;
+                    keyMode = "vi";
+                    mouse = true;
+                    terminal = "tmux-256color";
+                    plugins = with pkgs.tmuxPlugins; [ resurrect ];
+                    extraConfig = ''
+                      bind -T copy-mode-vi v send-keys -X begin-selection
+                      bind -T copy-mode-vi y send-keys -X copy-selection
+                      bind h select-pane -L
+                      bind j select-pane -D
+                      bind k select-pane -U
+                      bind l select-pane -R
+                      bind -r H resize-pane -L 2
+                      bind -r J resize-pane -D 2
+                      bind -r K resize-pane -U 2
+                      bind -r L resize-pane -R 2
+
+                      bind - split-window -hbf -c "#{pane_current_path}"
+                      bind \\ split-window -hf -c "#{pane_current_path}"
+                      bind '"' split-window -v -c "#{pane_current_path}"
+
+                      bind -n MouseDown1Pane select-pane -t= \; send-keys -M
+
+                      set-option -g status-style bg=colour0,fg=colour205
+                      set-window-option -g window-status-style fg=colour123,bg=default,dim
+                      set-window-option -g window-status-current-style fg=colour84,bg=default,bright
+                      set-option -g pane-border-style fg=colour81
+                      set-option -g pane-active-border-style fg=colour84
+                      set-option -g message-style bg=colour81,fg=colour17
+                      set-option -g display-panes-active-colour colour203
+                      set-option -g display-panes-colour colour84
+                      set-window-option -g clock-mode-colour colour205
+                      set -g status-right '%H:%M %d-%b-%y'
+
+                      set -s set-clipboard on
+                      set -g mouse on
+                      set -g allow-passthrough on
+                      set -g terminal-overrides "xterm-256color:RGB"
+                      set -a terminal-features "xterm*:strikethrough"
+                      set -g pane-base-index 1
+                      set -g repeat-time 1000
+                      set -g display-panes-time 3000
+                      set -g detach-on-destroy off
+                    '';
+                  };
+
+                  programs.ssh = {
+                    enable = true;
+                    matchBlocks = {
+                      "hf.co" = {
+                        identityFile = [ "~/.ssh/hf-bruari-20231209" ];
+                      };
+                      "github.com" = {
+                        extraOptions = {
+                          AddKeysToAgent = "yes";
+                          HostkeyAlgorithms = "+ssh-rsa";
+                          PubkeyAcceptedAlgorithms = "+ssh-rsa";
+                          UseKeychain = "yes";
+                        };
+                        identityFile = [ "~/.ssh/github-dmasiero" ];
+                      };
+                      "gitea.masiero.internal" = {
+                        user = "git";
+                        port = 2222;
+                        extraOptions = {
+                          IdentitiesOnly = "yes";
+                          UseKeychain = "yes";
+                        };
+                        identityFile = [ "~/.ssh/gitea_masiero_doug" ];
+                      };
+                      "*" = {
+                        extraOptions = {
+                          HostkeyAlgorithms = "+ssh-rsa";
+                          PubkeyAcceptedAlgorithms = "+ssh-rsa";
+                          IdentitiesOnly = "yes";
+                          LogLevel = "ERROR";
+                          UseKeychain = "yes";
+                        };
+                        identityFile = [
+                          "~/.ssh/DMMF-20211104"
+                          "~/.ssh/id_DAM_20191006"
+                          "~/.ssh/batman_rsa"
+                        ];
+                      };
+                    };
+                  };
+
+                  programs.git = {
+                    enable = true;
+                    userName = "Doug Masiero";
+                    userEmail = "doug@masie.ro";
+                    extraConfig = {
+                      init.defaultBranch = "main";
+                      pull.rebase = false;
+                      color.ui = "auto";
+                      core.editor = "nvim";
+                      credential.helper = "store";
+                    };
+                  };
+
+                  programs.kitty = {
+                    enable = true;
+                    font = {
+                      name = "MonaspiceNe Nerd Font Mono";
+                      size = 18;
+                    };
+                    settings = {
+                      cursor_shape = "block";
+                      remember_window_size = "yes";
+                      initial_window_width = "150c";
+                      initial_window_height = "42c";
+                      enable_audio_bell = "no";
+                      confirm_os_window_close = 0;
+                    };
+                  };
+                };
+            };
+          }
         ];
       };
     };
-  in
-  {
-    darwinConfigurations."Dougs-Virtual-Machine" = nix-darwin.lib.darwinSystem {
-      modules = [
-        configuration
-        home-manager.darwinModules.home-manager
-        {
-          home-manager = {
-            useGlobalPkgs = true;
-            useUserPackages = true;
-             users.doug = { pkgs, lib, ... }: {
-               home = {
-                 username = "doug";
-                 homeDirectory = "/Users/doug";
-                 stateVersion = "25.05";
-                 enableNixpkgsReleaseCheck = false;
-               };
-
-               # Home Manager
-               programs.home-manager.enable = true;
-
-               # User Packages
-              home.packages = with pkgs; [
-                neovim
-                neofetch
-                fzf
-                gh
-                lazygit
-              ];
-
-               # Dotfiles
-               home.file = {
-                 ".config/nvim" = { source = ./dotfiles/.config/nvim; recursive = true; };
-                 ".p10k.zsh" = { source = ./dotfiles/.p10k.zsh; };
-               };
-
-               # Environment Variables
-               home.sessionVariables = {};
-
-               # zsh Configuration
-              programs.zsh = {
-                enable = true;
-                initContent = ''
-                  [[ ! -f ~/.p10k.zsh ]] || source ~/.p10k.zsh
-                  bindkey '^_' fzf_history_search
-                  if [ -f ~/.smanager ]; then
-                    . ~/.smanager
-                  fi
-                  export PATH="/opt/homebrew/bin:$PATH"
-                '';
-                antidote = {
-                  enable = true;
-                  package = pkgs.antidote;
-                  useFriendlyNames = true;
-                  plugins = [
-                    "jeffreytse/zsh-vi-mode"
-                    "rupa/z"
-                    "zsh-users/zsh-autosuggestions"
-                    "zsh-users/zsh-syntax-highlighting"
-                    "zsh-users/zsh-history-substring-search"
-                    "zdharma-continuum/fast-syntax-highlighting kind:defer"
-                    "getantidote/use-omz"
-                    "ohmyzsh/ohmyzsh path:lib"
-                    "ohmyzsh/ohmyzsh path:plugins/git"
-                    "ohmyzsh/ohmyzsh path:plugins/extract"
-                    "romkatv/powerlevel10k"
-                    "joshskidmore/zsh-fzf-history-search"
-                    "mattberther/zsh-pyenv"
-                  ];
-                };
-              };
-
-              # tmux Configuration
-              programs.tmux = {
-                enable = true;
-                baseIndex = 1;
-                historyLimit = 10000;
-                keyMode = "vi";
-                mouse = true;
-                terminal = "tmux-256color";
-                plugins = with pkgs.tmuxPlugins; [ resurrect ];
-                extraConfig = ''
-                  # Vim Keybindings
-                  bind -T copy-mode-vi v send-keys -X begin-selection
-                  bind -T copy-mode-vi y send-keys -X copy-selection
-                  bind h select-pane -L
-                  bind j select-pane -D
-                  bind k select-pane -U
-                  bind l select-pane -R
-                  bind -r H resize-pane -L 2
-                  bind -r J resize-pane -D 2
-                  bind -r K resize-pane -U 2
-                  bind -r L resize-pane -R 2
-
-                  # Pane Splitting
-                  bind - split-window -hbf -c "#{pane_current_path}"
-                  bind \\ split-window -hf -c "#{pane_current_path}"
-                  bind '"' split-window -v -c "#{pane_current_path}"
-
-                  # Mouse Behavior
-                  bind -n MouseDown1Pane select-pane -t= \; send-keys -M
-
-                  # Theme
-                  set-option -g status-style bg=colour0,fg=colour205
-                  set-window-option -g window-status-style fg=colour123,bg=default,dim
-                  set-window-option -g window-status-current-style fg=colour84,bg=default,bright
-                  set-option -g pane-border-style fg=colour81
-                  set-option -g pane-active-border-style fg=colour84
-                  set-option -g message-style bg=colour81,fg=colour17
-                  set-option -g display-panes-active-colour colour203
-                  set-option -g display-panes-colour colour84
-                  set-window-option -g clock-mode-colour colour205
-                  set -g status-right '%H:%M %d-%b-%y'
-
-                  # Session Options
-                  set -g terminal-overrides "xterm-256color:RGB"
-                  set -a terminal-features "xterm*:strikethrough"
-                  set -g pane-base-index 1
-                  set -g repeat-time 1000
-                  set -g display-panes-time 3000
-                  set -g detach-on-destroy off
-                '';
-              };
-
-              # SSH Configuration
-              programs.ssh = {
-                enable = true;
-                matchBlocks = {
-                  "hf.co" = {
-                    hostname = "hf.co";
-                    extraOptions.UseKeychain = "yes";
-                    identityFile = [ "~/.ssh/hf-bruari-20231209" ];
-                  };
-                  "*" = {
-                    extraOptions = {
-                      UseKeychain = "yes";
-                      AddKeysToAgent = "yes";
-                      HostkeyAlgorithms = "+ssh-rsa";
-                      PubkeyAcceptedAlgorithms = "+ssh-rsa";
-                    };
-                    identityFile = [
-                      "~/.ssh/DMMF-20211104"
-                      "~/.ssh/id_DAM_20191006"
-                      "~/.ssh/batman_rsa"
-                    ];
-                  };
-                  "github.com" = {
-                    hostname = "github.com";
-                    extraOptions = {
-                      UseKeychain = "yes";
-                      AddKeysToAgent = "yes";
-                      HostkeyAlgorithms = "+ssh-rsa";
-                      PubkeyAcceptedAlgorithms = "+ssh-rsa";
-                    };
-                    identityFile = [ "~/.ssh/github-dmasiero" ];
-                  };
-                  "gitea-git" = {
-                    hostname = "gitea.masiero.internal";
-                    user = "git";
-                    port = 2222;
-                    extraOptions = {
-                      UseKeychain = "yes";
-                      AddKeysToAgent = "yes";
-                      IdentitiesOnly = "yes";
-                    };
-                    identityFile = [ "~/.ssh/gitea_masiero_doug" ];
-                  };
-                  "gitea-mtg" = {
-                    hostname = "gitea.masiero.internal";
-                    user = "mtg";
-                    port = 22;
-                    extraOptions = {
-                      UseKeychain = "yes";
-                      IdentitiesOnly = "yes";
-                    };
-                    identityFile = [ "~/.ssh/id_rsa" ];
-                  };
-                };
-              };
-
-              # Git Configuration
-              programs.git = {
-                enable = true;
-                userName = "Doug Masiero";
-                userEmail = "doug@masiero.tech";
-                extraConfig = {
-                  init.defaultBranch = "main";
-                  pull.rebase = false;
-                  color.ui = "auto";
-                  core.editor = "nvim";
-                  credential.helper = "store";
-                };
-                aliases = {
-                  co = "checkout";
-                  st = "status";
-                  ci = "commit";
-                  br = "branch";
-                };
-              };
-
-              # Ghostty Configuration
-              programs.ghostty = {
-                enable = true;
-                package = null;
-                settings = {
-                  theme = "iTerm2 Default";
-                  cursor-style = "block";
-                  font-size = 18;
-                  window-width = 150;
-                  window-height = 42;
-                  split-divider-color = "727272";
-                  font-family = "MonaspiceNe Nerd Font Mono";
-                  cursor-click-to-move = true;
-                  mouse-hide-while-typing = true;
-                  clipboard-paste-protection = false;
-                  auto-update = "check";
-                };
-               };
-             };
-          };
-        }
-      ];
-    };
-  };
 }
