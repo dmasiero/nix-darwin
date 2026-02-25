@@ -193,6 +193,22 @@
                     fi
                   '';
 
+                  home.activation.cloneSmanagerRepo = lib.hm.dag.entryAfter [ "fixSshPerms" ] ''
+                    DEV_DIR="$HOME/Dev"
+                    SMANAGER_DIR="$DEV_DIR/smanager"
+                    SMANAGER_REPO="ssh://git@gitea.masiero.internal:2222/masiero/smanager.git"
+
+                    mkdir -p "$DEV_DIR"
+
+                    if [ -d "$SMANAGER_DIR/.git" ]; then
+                      echo "Updating smanager repo in $SMANAGER_DIR ..."
+                      git -C "$SMANAGER_DIR" pull --ff-only || true
+                    else
+                      echo "Cloning smanager repo to $SMANAGER_DIR ..."
+                      git clone "$SMANAGER_REPO" "$SMANAGER_DIR" || true
+                    fi
+                  '';
+
                   programs.zsh = {
                     enable = true;
                     initContent = ''
@@ -224,6 +240,7 @@
                     '';
 
                     plugins = [
+                      # bass: lets fish source bash/POSIX scripts (used for smanager)
                       { name = "bass"; src = pkgs.fishPlugins.bass.src; }
                     ];
 
@@ -236,8 +253,9 @@
                     interactiveShellInit = ''
                       set fish_greeting ""
 
-                      if test -f ~/Dev/masiero/smanager/smanager
-                        bass source ~/Dev/masiero/smanager/smanager
+                      # Source smanager (bash script — requires bass)
+                      if test -f ~/Dev/smanager/smanager
+                        bass source ~/Dev/smanager/smanager
                       end
 
                       if test -z "$TMUX"
