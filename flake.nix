@@ -108,8 +108,8 @@
               "balenaetcher"
               "transmission"
               "adobe-creative-cloud"
-              "wireshark"
               "xquartz"
+              "wireshark"
             ];
           };
         };

@@ -54,6 +54,14 @@ if [[ ! "$choice" =~ ^[Yy]$ ]]; then
 fi
 echo "----------------------------------------"
 
+# Preflight: required temporary key for dotfiles clone
+TEMP_GITEA_KEY="$HOME/gitea_masiero_doug"
+if [ ! -f "$TEMP_GITEA_KEY" ]; then
+  echo "Error: required temporary key $TEMP_GITEA_KEY not found."
+  echo "Place gitea_masiero_doug in your home directory and re-run setup."
+  exit 1
+fi
+
 # Install Determinate Nix
 echo "Installing Determinate Nix..."
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
@@ -85,36 +93,31 @@ fi
 # Clone dotfiles repo using temporary Gitea key from ~/
 DOTFILES_DIR="$HOME/dotfiles"
 DOTFILES_REPO="ssh://git@gitea.masiero.internal:2222/masiero/dotfiles.git"
-TEMP_GITEA_KEY="$HOME/gitea_masiero_doug"
 
-if [ -f "$TEMP_GITEA_KEY" ]; then
-  chmod 600 "$TEMP_GITEA_KEY" || true
-  echo "Cloning dotfiles repo to $DOTFILES_DIR ..."
-  if [ -d "$DOTFILES_DIR/.git" ]; then
-    echo "$DOTFILES_DIR already exists; pulling latest changes..."
-    GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
-      git -C "$DOTFILES_DIR" pull --ff-only
-  else
-    GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
-      git clone "$DOTFILES_REPO" "$DOTFILES_DIR"
-  fi
-
-  # Symlink ~/.ssh -> ~/dotfiles/ssh after dotfiles clone completes
-  if [ -d "$DOTFILES_DIR/ssh" ]; then
-    if [ -e "$HOME/.ssh" ] && [ ! -L "$HOME/.ssh" ]; then
-      echo "Backing up existing ~/.ssh to ~/.ssh.before-dotfiles-link ..."
-      mv "$HOME/.ssh" "$HOME/.ssh.before-dotfiles-link"
-    fi
-    ln -sfn "$DOTFILES_DIR/ssh" "$HOME/.ssh"
-  else
-    echo "Warning: $DOTFILES_DIR/ssh not found; skipping ~/.ssh symlink."
-  fi
-
-  echo "Deleting temporary key $TEMP_GITEA_KEY ..."
-  rm -f "$TEMP_GITEA_KEY"
+chmod 600 "$TEMP_GITEA_KEY" || true
+echo "Cloning dotfiles repo to $DOTFILES_DIR ..."
+if [ -d "$DOTFILES_DIR/.git" ]; then
+  echo "$DOTFILES_DIR already exists; pulling latest changes..."
+  GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+    git -C "$DOTFILES_DIR" pull --ff-only
 else
-  echo "Warning: temporary key $TEMP_GITEA_KEY not found; skipping dotfiles clone."
+  GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+    git clone "$DOTFILES_REPO" "$DOTFILES_DIR"
 fi
+
+# Symlink ~/.ssh -> ~/dotfiles/ssh after dotfiles clone completes
+if [ -d "$DOTFILES_DIR/ssh" ]; then
+  if [ -e "$HOME/.ssh" ] && [ ! -L "$HOME/.ssh" ]; then
+    echo "Backing up existing ~/.ssh to ~/.ssh.before-dotfiles-link ..."
+    mv "$HOME/.ssh" "$HOME/.ssh.before-dotfiles-link"
+  fi
+  ln -sfn "$DOTFILES_DIR/ssh" "$HOME/.ssh"
+else
+  echo "Warning: $DOTFILES_DIR/ssh not found; skipping ~/.ssh symlink."
+fi
+
+echo "Deleting temporary key $TEMP_GITEA_KEY ..."
+rm -f "$TEMP_GITEA_KEY"
 
 # Create wallpaper file (solid #1C1C1E) if missing
 WALLPAPER_FILE="$HOME/dotfiles/wallpapers/solid-1C1C1E.ppm"
@@ -149,12 +152,14 @@ fi
 
 # Install Nix Darwin from local flake
 echo "Installing Nix Darwin from $REPO_DIR#$FLAKE_HOST ..."
+set +e
 sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#$FLAKE_HOST"
+DARWIN_SWITCH_EXIT=$?
+set -e
 
 # Restart Dock so updated shortcuts are applied
+# Must run after darwin-rebuild.
 echo "Restarting Dock to apply shortcut changes..."
 killall Dock || true
 
-# Sneaker net reminder at the end
-echo "👟 Reminder: Don't forget to copy your secrets (e.g., SSH keys) into ~/.ssh via sneaker net! 💻"
-echo "🎉 Setup complete! Your system is ready to rock and roll! 🤘🏻🎸🚀"
+exit $DARWIN_SWITCH_EXIT
