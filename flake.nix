@@ -66,10 +66,11 @@
           users.users.doug = {
             name = "doug";
             home = "/Users/doug";
-            shell = pkgs.fish;
+            shell = pkgs.zsh;
           };
 
           programs.fish.enable = true;
+          programs.zsh.enable = true;
 
           nix = {
             enable = false;
@@ -184,6 +185,14 @@
                     mkdir -p /Users/doug/dotfiles/pi
                   '';
 
+                  programs.zsh = {
+                    enable = true;
+                    initExtra = ''
+                      if [[ -o interactive ]] && command -v fish >/dev/null 2>&1; then
+                        exec fish -l
+                      fi
+                    '';
+                  };
 
                   programs.fish = {
                     enable = true;
