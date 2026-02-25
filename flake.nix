@@ -109,7 +109,7 @@
               "transmission"
               "adobe-creative-cloud"
               "xquartz"
-              "wireshark"
+              "wireshark-app"
             ];
           };
         };
