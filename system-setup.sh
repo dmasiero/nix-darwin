@@ -113,6 +113,10 @@ fi
 echo "Installing Nix Darwin from $REPO_DIR#$FLAKE_HOST ..."
 sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#$FLAKE_HOST"
 
+# Restart Dock so updated shortcuts are applied
+echo "Restarting Dock to apply shortcut changes..."
+killall Dock || true
+
 # Sneaker net reminder at the end
 echo "👟 Reminder: Don't forget to copy your secrets (e.g., SSH keys) into ~/.ssh via sneaker net! 💻"
 echo "🎉 Setup complete! Your system is ready to rock and roll! 🤘🏻🎸🚀"
