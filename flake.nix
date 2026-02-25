@@ -94,7 +94,7 @@
               "raycast"
               "discord"
               "telegram"
-              "docker"
+              "orbstack"
               "utm"
               "adobe-creative-cloud"
               "vlc"

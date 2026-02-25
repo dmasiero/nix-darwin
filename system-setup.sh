@@ -1,15 +1,6 @@
-#!/usr/bin/env bash
-set -euo pipefail
-
-# nix-darwin setup (local flake mode)
-# Assumes your repo already exists at ~/nix (or a path you provide).
-
-if [[ "$(uname -s)" != "Darwin" ]]; then
-  echo "This script is for macOS (Darwin) only."
-  exit 1
-fi
-
-echo -e "\033[1;34m"
+#!/bin/bash
+# Cool Nix-themed ASCII art and startup prompt
+echo -e "\033[1;34m" # Blue for a cool Nix vibe
 cat <<'EOF'
                 ___          ______         ___               
                J@@@@,        '@@@@@@,     ,@@@@p              
@@ -18,7 +9,7 @@ cat <<'EOF'
               ., ?jlT@:_        _0'q,@@@@@@@@W                
           ___,9=._  _@_",,__,,@P==4@p_%@@g_'F                 
          /@@@.'@@@,|[@@@',@@j[@P"_~gg_%_%@@@g       ,a        
-        A@@@@.'@@@|@'@@@ @|@@L ,@@@"_",q\@@@4`    ,@@@       
+        A@@@@.'@@@|@'@@@ @|@@L ,@@@@"_",q\@@@4`    ,@@@       
        """""" l""""[."""_F'""";"@@"_g,o[|g@@ g@@@'/@@@@@      
               '0qa~gLgmD'   gp._@ @@BB|][@@@'@@@"/@@@@@D      
                 Jgg'|gP  '"_~g@g' @gq'@ @@@@@@" @@@@@@P       
@@ -39,100 +30,80 @@ cat <<'EOF'
                @@@@@@     %@@@@@g         Q@@@@@`             
                 @@BP       "BBBBBB         t@@B               
 EOF
-echo -e "\033[0m"
+echo -e "\033[0m" # Reset color
+echo "🚀 Welcome to Doug's Nix-Darwin System Setup! 🌌"
+echo "🔐 Have your secrets ready to transfers via sneaker net! 👟🌎💻"
+echo ""
 
-echo "🚀 Doug's nix-darwin setup (local repo mode)"
-echo "📁 Assumes your nix repo already exists locally."
-echo
+# Explanation of what the script will do
+echo "This script will:"
+echo "1. Install Determinate Nix to manage packages and configurations."
+echo "2. Install Homebrew for additional package management."
+echo "3. Create a solid-color wallpaper file (#1C1C1E) in ~/dotfiles/wallpapers."
+echo "4. Apply that wallpaper to all desktops."
+echo "5. Clone a Nix Darwin configuration from GitHub to /etc/nix-darwin."
+echo "6. Install and switch to the Nix Darwin configuration."
+echo ""
 
-default_repo_dir="$HOME/nix"
-default_host="Dougs-Virtual-Machine"
-default_wallpaper="$HOME/dotfiles/wallpapers/solid-1C1C1E.ppm"
+# Prompt user to continue or exit
+echo "Do you want to continue with the setup? (y/n)"
+read -p "Enter your choice: " choice </dev/tty
+if [[ ! "$choice" =~ ^[Yy]$ ]]; then
+  echo "Setup aborted. Exiting..."
+  exit 0
+fi
+echo "----------------------------------------"
 
-read -r -p "Local nix repo path [${default_repo_dir}]: " REPO_DIR
-REPO_DIR="${REPO_DIR:-$default_repo_dir}"
+# Install Determinate Nix
+echo "Installing Determinate Nix..."
+curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 
-read -r -p "Flake host key [${default_host}]: " HOST_NAME
-HOST_NAME="${HOST_NAME:-$default_host}"
+# Activate Determinate Nix (Current shell)
+echo "Activating Determinate Nix..."
+. /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-read -r -p "Wallpaper file path [${default_wallpaper}]: " WALLPAPER_FILE
-WALLPAPER_FILE="${WALLPAPER_FILE:-$default_wallpaper}"
+# Install Homebrew
+echo "Installing Homebrew..."
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-echo
-echo "Choose execution mode:"
-echo "  1) Guided (prompt before each step)"
-echo "  2) Print-only (you run commands manually)"
-read -r -p "Mode [1/2]: " MODE
-MODE="${MODE:-1}"
+# Activate Homebrew (Current shell)
+echo "Activating Homebrew..."
+eval "$(/opt/homebrew/bin/brew shellenv)"
 
-run_step() {
-  local title="$1"
-  local cmd="$2"
+# Create wallpaper file (solid #1C1C1E)
+WALLPAPER_FILE="$HOME/dotfiles/wallpapers/solid-1C1C1E.ppm"
+echo "Creating wallpaper file at $WALLPAPER_FILE ..."
+mkdir -p "$(dirname "$WALLPAPER_FILE")"
+cat > "$WALLPAPER_FILE" <<'EOF'
+P3
+1 1
+255
+28 28 30
+EOF
 
-  echo
-  echo "==> ${title}"
-  echo "    ${cmd}"
+# Apply wallpaper to all desktops
+echo "Applying wallpaper to all desktops..."
+osascript <<EOF
+tell application "System Events"
+  tell every desktop
+    set picture to "${WALLPAPER_FILE}"
+  end tell
+end tell
+EOF
 
-  if [[ "$MODE" == "2" ]]; then
-    echo "[print-only] Run the command above manually, then press Enter to continue."
-    read -r _ </dev/tty
-    return 0
-  fi
+# Clone Nix Darwin Configuration
+echo "Cloning Nix Darwin configuration..."
+sudo git clone https://github.com/dmasiero/nix-darwin.git /etc/nix-darwin
+sudo chown -R "$USER":staff /etc/nix-darwin
 
-  while true; do
-    read -r -p "Run this step? [y]es/[s]kip/[q]uit: " ans </dev/tty
-    case "$ans" in
-      y|Y)
-        eval "$cmd"
-        return 0
-        ;;
-      s|S)
-        echo "Skipped."
-        return 0
-        ;;
-      q|Q)
-        echo "Exiting."
-        exit 0
-        ;;
-      *)
-        echo "Please enter y, s, or q."
-        ;;
-    esac
-  done
-}
+# Install Nix Darwin
+echo "Installing Nix Darwin..."
+sudo nix run nix-darwin/master#darwin-rebuild -- switch
 
-echo
-echo "Plan:"
-echo "1) Verify local nix repo exists"
-echo "2) Ensure Nix daemon profile is available in this shell"
-echo "3) Create ~/dotfiles/wallpapers and solid-color wallpaper file (#1C1C1E)"
-echo "4) Apply wallpaper to all desktops"
-echo "5) Switch nix-darwin from local flake"
-echo
+# Additional darwin-rebuild switch
+echo "Running additional darwin-rebuild switch..."
+sudo darwin-rebuild switch
 
-read -r -p "Continue? [y/N]: " go </dev/tty
-[[ "$go" =~ ^[Yy]$ ]] || { echo "Aborted."; exit 0; }
-
-run_step \
-  "Verify local nix repo and flake" \
-  "test -d '${REPO_DIR}' && test -f '${REPO_DIR}/flake.nix'"
-
-run_step \
-  "Load Nix daemon profile in this shell" \
-  "test -f /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh && . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh"
-
-run_step \
-  "Create wallpaper file ${WALLPAPER_FILE}" \
-  "mkdir -p \"$(dirname \"${WALLPAPER_FILE}\")\" && cat > \"${WALLPAPER_FILE}\" <<'EOF'\nP3\n1 1\n255\n28 28 30\nEOF"
-
-run_step \
-  "Apply wallpaper to all desktops" \
-  "osascript <<'EOF'\ntell application \"System Events\"\n  tell every desktop\n    set picture to \"${WALLPAPER_FILE}\"\n  end tell\nend tell\nEOF"
-
-run_step \
-  "Switch to nix-darwin config" \
-  "sudo -H nix run nix-darwin -- switch --flake '${REPO_DIR}#${HOST_NAME}'"
-
-echo
-echo "✅ Done."
-echo "If you skipped steps, run them manually before logging out/rebooting."
+# Sneaker net reminder at the end
+echo "👟 Reminder: Don't forget to copy your secrets (e.g., SSH keys) into ~/.ssh via sneaker net! 💻"
+echo "🎉 Setup complete! Your system is ready to rock and roll! 🤘🏻🎸🚀"
