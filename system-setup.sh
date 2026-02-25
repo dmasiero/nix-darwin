@@ -105,7 +105,7 @@ fi
 
 # Install Nix Darwin from local flake
 echo "Installing Nix Darwin from $REPO_DIR#$FLAKE_HOST ..."
-nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#$FLAKE_HOST"
+sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#$FLAKE_HOST"
 
 # Sneaker net reminder at the end
 echo "👟 Reminder: Don't forget to copy your secrets (e.g., SSH keys) into ~/.ssh via sneaker net! 💻"
