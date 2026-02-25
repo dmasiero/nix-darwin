@@ -103,6 +103,40 @@ else
   git clone https://github.com/dmasiero/nix-darwin.git "$REPO_DIR"
 fi
 
+# Clone dotfiles repo using temporary Gitea key from ~/
+DOTFILES_DIR="$HOME/dotfiles"
+DOTFILES_REPO="ssh://git@gitea.masiero.internal:2222/masiero/dotfiles.git"
+TEMP_GITEA_KEY="$HOME/gitea_masiero_doug"
+
+if [ -f "$TEMP_GITEA_KEY" ]; then
+  chmod 600 "$TEMP_GITEA_KEY" || true
+  echo "Cloning dotfiles repo to $DOTFILES_DIR ..."
+  if [ -d "$DOTFILES_DIR/.git" ]; then
+    echo "$DOTFILES_DIR already exists; pulling latest changes..."
+    GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+      git -C "$DOTFILES_DIR" pull --ff-only
+  else
+    GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+      git clone "$DOTFILES_REPO" "$DOTFILES_DIR"
+  fi
+
+  # Symlink ~/.ssh -> ~/dotfiles/ssh after dotfiles clone completes
+  if [ -d "$DOTFILES_DIR/ssh" ]; then
+    if [ -e "$HOME/.ssh" ] && [ ! -L "$HOME/.ssh" ]; then
+      echo "Backing up existing ~/.ssh to ~/.ssh.before-dotfiles-link ..."
+      mv "$HOME/.ssh" "$HOME/.ssh.before-dotfiles-link"
+    fi
+    ln -sfn "$DOTFILES_DIR/ssh" "$HOME/.ssh"
+  else
+    echo "Warning: $DOTFILES_DIR/ssh not found; skipping ~/.ssh symlink."
+  fi
+
+  echo "Deleting temporary key $TEMP_GITEA_KEY ..."
+  rm -f "$TEMP_GITEA_KEY"
+else
+  echo "Warning: temporary key $TEMP_GITEA_KEY not found; skipping dotfiles clone."
+fi
+
 # Preflight: avoid nix-darwin activation abort on existing /etc/zshenv
 if [ -f /etc/zshenv ] && [ ! -f /etc/zshenv.before-nix-darwin ]; then
   echo "Backing up existing /etc/zshenv to /etc/zshenv.before-nix-darwin ..."
