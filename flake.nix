@@ -108,8 +108,8 @@
               "balenaetcher"
               "transmission"
               "adobe-creative-cloud"
-              "wireshark"
               "xquartz"
+              "wireshark-app"
             ];
           };
         };
@@ -213,7 +213,10 @@
                       end
 
                       if type -q keychain; and test (count $_kc_keys) -gt 0
-                        keychain --eval --quiet --shell fish $_kc_keys | source
+                        keychain --eval --quiet $_kc_keys \
+                          | sed -E 's/^([A-Za-z_][A-Za-z0-9_]*)=(.*); export \1;$/set -gx \1 \2;/' \
+                          | sed -E 's/^unset ([A-Za-z_][A-Za-z0-9_]*);$/set -e \1;/' \
+                          | source
                       end
                     '';
 
