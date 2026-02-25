@@ -76,7 +76,9 @@
             settings.experimental-features = "nix-command flakes";
           };
 
-          environment.systemPackages = with pkgs; [ ];
+          environment.systemPackages = with pkgs; [ fish ];
+
+          environment.shells = [ pkgs.fish ];
 
           fonts.packages = with pkgs; [
             nerd-fonts.fira-code
@@ -90,6 +92,7 @@
             taps = [ "sst/tap" ];
             brews = [ "sst/tap/opencode" ];
             casks = [
+              "kitty"
               "helium-browser"
               "raycast"
               "discord"
@@ -576,21 +579,6 @@
                     };
                   };
 
-                  programs.kitty = {
-                    enable = true;
-                    font = {
-                      name = "MonaspiceNe Nerd Font Mono";
-                      size = 18;
-                    };
-                    settings = {
-                      cursor_shape = "block";
-                      remember_window_size = "yes";
-                      initial_window_width = "150c";
-                      initial_window_height = "42c";
-                      enable_audio_bell = "no";
-                      confirm_os_window_close = 0;
-                    };
-                  };
                 };
             };
           }
