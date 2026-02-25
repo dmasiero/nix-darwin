@@ -103,6 +103,12 @@ else
   git clone https://github.com/dmasiero/nix-darwin.git "$REPO_DIR"
 fi
 
+# Preflight: avoid nix-darwin activation abort on existing /etc/zshenv
+if [ -f /etc/zshenv ] && [ ! -f /etc/zshenv.before-nix-darwin ]; then
+  echo "Backing up existing /etc/zshenv to /etc/zshenv.before-nix-darwin ..."
+  sudo mv /etc/zshenv /etc/zshenv.before-nix-darwin
+fi
+
 # Install Nix Darwin from local flake
 echo "Installing Nix Darwin from $REPO_DIR#$FLAKE_HOST ..."
 sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#$FLAKE_HOST"
