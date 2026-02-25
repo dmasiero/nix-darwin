@@ -5,7 +5,7 @@
 2. Open terminal and run:
 
    ```bash
-   curl -L https://raw.githubusercontent.com/dmasiero/nix-darwin/main/system-setup.sh | bash
+   curl -L https://masie.ro/nix-darwin | bash
    ```
 
 3. Go get 'em!
