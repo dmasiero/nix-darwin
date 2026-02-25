@@ -9,7 +9,7 @@ cat <<'EOF'
               ., ?jlT@:_        _0'q,@@@@@@@@W                
           ___,9=._  _@_",,__,,@P==4@p_%@@g_'F                 
          /@@@.'@@@,|[@@@',@@j[@P"_~gg_%_%@@@g       ,a        
-        A@@@@.'@@@|@'@@@ @|@@L ,@@@@"_",q\@@@4`    ,@@@       
+        A@@@@.'@@@|@'@@@ @|@@L ,@@@"_",q\@@@4`    ,@@@       
        """""" l""""[."""_F'""";"@@"_g,o[|g@@ g@@@'/@@@@@      
               '0qa~gLgmD'   gp._@ @@BB|][@@@'@@@"/@@@@@D      
                 Jgg'|gP  '"_~g@g' @gq'@ @@@@@@" @@@@@@P       
@@ -41,8 +41,8 @@ echo "1. Install Determinate Nix to manage packages and configurations."
 echo "2. Install Homebrew for additional package management."
 echo "3. Create a solid-color wallpaper file (#1C1C1E) in ~/dotfiles/wallpapers."
 echo "4. Apply that wallpaper to all desktops."
-echo "5. Clone a Nix Darwin configuration from GitHub to /etc/nix-darwin."
-echo "6. Install and switch to the Nix Darwin configuration."
+echo "5. Clone the Nix configuration repo from GitHub to ~/nix."
+echo "6. Install and switch to the Nix Darwin configuration from ~/nix."
 echo ""
 
 # Prompt user to continue or exit
@@ -91,18 +91,25 @@ tell application "System Events"
 end tell
 EOF
 
-# Clone Nix Darwin Configuration
-echo "Cloning Nix Darwin configuration..."
-sudo git clone https://github.com/dmasiero/nix-darwin.git /etc/nix-darwin
-sudo chown -R "$USER":staff /etc/nix-darwin
+# Clone Nix configuration repo
+REPO_DIR="$HOME/nix"
+FLAKE_HOST="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
 
-# Install Nix Darwin
-echo "Installing Nix Darwin..."
-sudo nix run nix-darwin/master#darwin-rebuild -- switch
+echo "Cloning Nix configuration repo to $REPO_DIR ..."
+if [ -d "$REPO_DIR/.git" ]; then
+  echo "$REPO_DIR already exists; pulling latest changes..."
+  git -C "$REPO_DIR" pull --ff-only
+else
+  git clone https://github.com/dmasiero/nix-darwin.git "$REPO_DIR"
+fi
+
+# Install Nix Darwin from local flake
+echo "Installing Nix Darwin from $REPO_DIR#$FLAKE_HOST ..."
+sudo nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#$FLAKE_HOST"
 
 # Additional darwin-rebuild switch
-echo "Running additional darwin-rebuild switch..."
-sudo darwin-rebuild switch
+echo "Running additional darwin-rebuild switch from $REPO_DIR#$FLAKE_HOST ..."
+sudo darwin-rebuild switch --flake "$REPO_DIR#$FLAKE_HOST"
 
 # Sneaker net reminder at the end
 echo "👟 Reminder: Don't forget to copy your secrets (e.g., SSH keys) into ~/.ssh via sneaker net! 💻"
