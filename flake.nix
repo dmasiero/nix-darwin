@@ -213,10 +213,8 @@
                       end
 
                       if type -q keychain; and test (count $_kc_keys) -gt 0
-                        keychain --eval --quiet $_kc_keys \
-                          | sed -E 's/^([A-Za-z_][A-Za-z0-9_]*)=(.*); export \1;$/set -gx \1 \2;/' \
-                          | sed -E 's/^unset ([A-Za-z_][A-Za-z0-9_]*);$/set -e \1;/' \
-                          | source
+                        set -lx SHELL (command -v fish)
+                        keychain --eval --quiet $_kc_keys | source
                       end
                     '';
 
