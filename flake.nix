@@ -34,7 +34,7 @@
                 show-recents = false;
                 persistent-others = [ ];
                 persistent-apps = [
-                  { app = "/Applications/kitty.app"; }
+                  { app = "/Applications/Ghostty.app"; }
                   { app = "/Applications/Helium.app"; }
                 ];
                 wvous-tl-corner = 1;
@@ -93,7 +93,7 @@
             taps = [ "sst/tap" ];
             brews = [ "sst/tap/opencode" ];
             casks = [
-              "kitty"
+              "ghostty"
               "helium-browser"
               "raycast"
               "discord"
@@ -198,6 +198,10 @@
                     enable = true;
 
                     loginShellInit = ''
+                      if test -x /opt/homebrew/bin/brew
+                        eval (/opt/homebrew/bin/brew shellenv)
+                      end
+
                       if type -q keychain
                         keychain --eval --quiet ~/.ssh/batman_rsa ~/.ssh/id_DAM_20191006 | source
                       end
