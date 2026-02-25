@@ -184,8 +184,13 @@
                     };
                   };
 
-                  home.activation.ensureDotfilesPiDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-                    mkdir -p /Users/doug/dotfiles/pi
+                  home.activation.fixSshPerms = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+                    if [ -e "$HOME/.ssh" ]; then
+                      chmod 700 "$HOME/.ssh" || true
+                      find -L "$HOME/.ssh" -type d -exec chmod 700 {} \; || true
+                      find -L "$HOME/.ssh" -type f ! -name "*.pub" -exec chmod 600 {} \; || true
+                      find -L "$HOME/.ssh" -type f -name "*.pub" -exec chmod 644 {} \; || true
+                    fi
                   '';
 
                   programs.zsh = {
@@ -206,17 +211,15 @@
                       end
 
                       set -l _kc_keys
-                      for k in ~/.ssh/batman_rsa ~/.ssh/id_DAM_20191006
+                      for k in ~/.ssh/batman_rsa ~/.ssh/id_DAM_20191006 ~/.ssh/github-dmasiero
                         if test -f $k
                           set _kc_keys $_kc_keys $k
                         end
                       end
 
                       if type -q keychain; and test (count $_kc_keys) -gt 0
-                        keychain --eval --quiet $_kc_keys \
-                          | sed -E 's/^([A-Za-z_][A-Za-z0-9_]*)=(.*); export \1;$/set -gx \1 \2;/' \
-                          | sed -E 's/^unset ([A-Za-z_][A-Za-z0-9_]*);$/set -e \1;/' \
-                          | source
+                        set -lx SHELL (command -v fish)
+                        keychain --eval --quiet $_kc_keys | source
                       end
                     '';
 
