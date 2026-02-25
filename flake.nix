@@ -100,15 +100,15 @@
               "telegram"
               "orbstack"
               "utm"
-              "adobe-creative-cloud"
               "vlc"
               "libreoffice"
               "ticktick"
               "bitwarden"
               "viscosity"
-              "wireshark"
               "balenaetcher"
               "transmission"
+              "adobe-creative-cloud"
+              "wireshark"
               "xquartz"
             ];
           };
@@ -179,6 +179,9 @@
                     ".swo-cli.yml" = {
                       source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/.swo-cli.yml";
                     };
+                    ".config/ghostty" = {
+                      source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/ghostty";
+                    };
                   };
 
                   home.activation.ensureDotfilesPiDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
@@ -187,7 +190,7 @@
 
                   programs.zsh = {
                     enable = true;
-                    initExtra = ''
+                    initContent = ''
                       if [[ -o interactive ]] && command -v fish >/dev/null 2>&1; then
                         exec fish -l
                       fi
@@ -202,8 +205,15 @@
                         eval (/opt/homebrew/bin/brew shellenv)
                       end
 
-                      if type -q keychain
-                        keychain --eval --quiet ~/.ssh/batman_rsa ~/.ssh/id_DAM_20191006 | source
+                      set -l _kc_keys
+                      for k in ~/.ssh/batman_rsa ~/.ssh/id_DAM_20191006
+                        if test -f $k
+                          set _kc_keys $_kc_keys $k
+                        end
+                      end
+
+                      if type -q keychain; and test (count $_kc_keys) -gt 0
+                        keychain --eval --quiet --shell fish $_kc_keys | source
                       end
                     '';
 
