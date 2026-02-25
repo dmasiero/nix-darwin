@@ -70,27 +70,6 @@ echo "Installing Homebrew..."
 echo "Activating Homebrew..."
 eval "$(/opt/homebrew/bin/brew shellenv)"
 
-# Create wallpaper file (solid #1C1C1E)
-WALLPAPER_FILE="$HOME/dotfiles/wallpapers/solid-1C1C1E.ppm"
-echo "Creating wallpaper file at $WALLPAPER_FILE ..."
-mkdir -p "$(dirname "$WALLPAPER_FILE")"
-cat > "$WALLPAPER_FILE" <<'EOF'
-P3
-1 1
-255
-28 28 30
-EOF
-
-# Apply wallpaper to all desktops
-echo "Applying wallpaper to all desktops..."
-osascript <<EOF
-tell application "System Events"
-  tell every desktop
-    set picture to "${WALLPAPER_FILE}"
-  end tell
-end tell
-EOF
-
 # Clone Nix configuration repo
 REPO_DIR="$HOME/nix"
 FLAKE_HOST="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
@@ -136,6 +115,31 @@ if [ -f "$TEMP_GITEA_KEY" ]; then
 else
   echo "Warning: temporary key $TEMP_GITEA_KEY not found; skipping dotfiles clone."
 fi
+
+# Create wallpaper file (solid #1C1C1E) if missing
+WALLPAPER_FILE="$HOME/dotfiles/wallpapers/solid-1C1C1E.ppm"
+if [ -f "$WALLPAPER_FILE" ]; then
+  echo "Wallpaper file already exists at $WALLPAPER_FILE; skipping create."
+else
+  echo "Creating wallpaper file at $WALLPAPER_FILE ..."
+  mkdir -p "$(dirname "$WALLPAPER_FILE")"
+  cat > "$WALLPAPER_FILE" <<'EOF'
+P3
+1 1
+255
+28 28 30
+EOF
+fi
+
+# Apply wallpaper to all desktops
+echo "Applying wallpaper to all desktops..."
+osascript <<EOF
+tell application "System Events"
+  tell every desktop
+    set picture to "${WALLPAPER_FILE}"
+  end tell
+end tell
+EOF
 
 # Preflight: avoid nix-darwin activation abort on existing /etc/zshenv
 if [ -f /etc/zshenv ] && [ ! -f /etc/zshenv.before-nix-darwin ]; then
