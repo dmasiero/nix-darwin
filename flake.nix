@@ -184,8 +184,13 @@
                     };
                   };
 
-                  home.activation.ensureDotfilesPiDir = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
-                    mkdir -p /Users/doug/dotfiles/pi
+                  home.activation.fixSshPerms = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+                    if [ -e "$HOME/.ssh" ]; then
+                      chmod 700 "$HOME/.ssh" || true
+                      find -L "$HOME/.ssh" -type d -exec chmod 700 {} \; || true
+                      find -L "$HOME/.ssh" -type f ! -name "*.pub" -exec chmod 600 {} \; || true
+                      find -L "$HOME/.ssh" -type f -name "*.pub" -exec chmod 644 {} \; || true
+                    fi
                   '';
 
                   programs.zsh = {
