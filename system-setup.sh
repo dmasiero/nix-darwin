@@ -116,6 +116,14 @@ else
   echo "Warning: $DOTFILES_DIR/ssh not found; skipping ~/.ssh symlink."
 fi
 
+# Ensure SSH key permissions are locked down after clone/symlink
+if [ -e "$HOME/.ssh" ]; then
+  echo "Fixing SSH permissions in ~/.ssh ..."
+  chmod 700 "$HOME/.ssh" || true
+  find -L "$HOME/.ssh" -type f ! -name "*.pub" -exec chmod 600 {} \; || true
+  find -L "$HOME/.ssh" -type f -name "*.pub" -exec chmod 644 {} \; || true
+fi
+
 echo "Deleting temporary key $TEMP_GITEA_KEY ..."
 rm -f "$TEMP_GITEA_KEY"
 

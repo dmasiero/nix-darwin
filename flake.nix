@@ -206,7 +206,7 @@
                       end
 
                       set -l _kc_keys
-                      for k in ~/.ssh/batman_rsa ~/.ssh/id_DAM_20191006
+                      for k in ~/.ssh/batman_rsa ~/.ssh/id_DAM_20191006 ~/.ssh/github-dmasiero
                         if test -f $k
                           set _kc_keys $_kc_keys $k
                         end
