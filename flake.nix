@@ -195,7 +195,7 @@
 
                   home.activation.cloneSmanagerRepo = lib.hm.dag.entryAfter [ "fixSshPerms" ] ''
                     DEV_DIR="$HOME/Dev"
-                    SMANAGER_DIR="$DEV_DIR/smanager"
+                    SMANAGER_DIR="$DEV_DIR/masiero/smanager"
                     SMANAGER_REPO="ssh://git@gitea.masiero.internal:2222/masiero/smanager.git"
 
                     mkdir -p "$DEV_DIR"
@@ -254,8 +254,8 @@
                       set fish_greeting ""
 
                       # Source smanager (bash script — requires bass)
-                      if test -f ~/Dev/smanager/smanager
-                        bass source ~/Dev/smanager/smanager
+                      if test -f ~/Dev/masiero/smanager/smanager
+                        bass source ~/Dev/masiero/smanager/smanager
                       end
 
                       if test -z "$TMUX"

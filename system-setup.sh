@@ -54,6 +54,26 @@ if [[ ! "$choice" =~ ^[Yy]$ ]]; then
 fi
 echo "----------------------------------------"
 
+# Prompt for hostname before installing tooling
+CURRENT_LOCAL_HOSTNAME="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
+CURRENT_COMPUTER_NAME="$(scutil --get ComputerName 2>/dev/null || hostname -s)"
+
+echo "Current hostname: ${CURRENT_LOCAL_HOSTNAME}"
+read -p "Enter desired hostname (leave blank to keep current): " NEW_HOSTNAME </dev/tty
+
+if [ -n "$NEW_HOSTNAME" ]; then
+  echo "Applying hostname '$NEW_HOSTNAME' ..."
+  if sudo scutil --set LocalHostName "$NEW_HOSTNAME" \
+    && sudo scutil --set HostName "$NEW_HOSTNAME" \
+    && sudo scutil --set ComputerName "$NEW_HOSTNAME"; then
+    echo "Hostname updated from '${CURRENT_COMPUTER_NAME}' to '${NEW_HOSTNAME}'."
+  else
+    echo "Warning: failed to set hostname. Continuing with existing hostname."
+  fi
+else
+  echo "Keeping existing hostname: ${CURRENT_LOCAL_HOSTNAME}"
+fi
+
 # Preflight: required temporary key for dotfiles clone
 TEMP_GITEA_KEY="$HOME/gitea_masiero_doug"
 if [ ! -f "$TEMP_GITEA_KEY" ]; then
@@ -122,6 +142,22 @@ if [ -e "$HOME/.ssh" ]; then
   chmod 700 "$HOME/.ssh" || true
   find -L "$HOME/.ssh" -type f ! -name "*.pub" -exec chmod 600 {} \; || true
   find -L "$HOME/.ssh" -type f -name "*.pub" -exec chmod 644 {} \; || true
+fi
+
+# Clone smanager repo using temporary Gitea key before deleting it
+SMANAGER_PARENT_DIR="$HOME/Dev/masiero"
+SMANAGER_DIR="$SMANAGER_PARENT_DIR/smanager"
+SMANAGER_REPO="ssh://git@gitea.masiero.internal:2222/masiero/smanager.git"
+
+mkdir -p "$SMANAGER_PARENT_DIR"
+echo "Cloning smanager repo to $SMANAGER_DIR ..."
+if [ -d "$SMANAGER_DIR/.git" ]; then
+  echo "$SMANAGER_DIR already exists; pulling latest changes..."
+  GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+    git -C "$SMANAGER_DIR" pull --ff-only
+else
+  GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+    git clone "$SMANAGER_REPO" "$SMANAGER_DIR"
 fi
 
 echo "Deleting temporary key $TEMP_GITEA_KEY ..."
