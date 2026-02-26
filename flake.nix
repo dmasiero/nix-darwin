@@ -66,7 +66,7 @@
           users.users.doug = {
             name = "doug";
             home = "/Users/doug";
-            shell = pkgs.zsh;
+            shell = pkgs.fish;
           };
 
           programs.fish.enable = true;
@@ -186,26 +186,13 @@
 
                   home.activation.fixSshPerms = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
                     if [ -e "$HOME/.ssh" ]; then
-                      chmod 700 "$HOME/.ssh" || true
-                      find -L "$HOME/.ssh" -type d -exec chmod 700 {} \; || true
-                      find -L "$HOME/.ssh" -type f ! -name "*.pub" -exec chmod 600 {} \; || true
-                      find -L "$HOME/.ssh" -type f -name "*.pub" -exec chmod 644 {} \; || true
-                    fi
-                  '';
+                      SSH_DIR="$(readlink "$HOME/.ssh" 2>/dev/null || printf "%s" "$HOME/.ssh")"
 
-                  home.activation.cloneSmanagerRepo = lib.hm.dag.entryAfter [ "fixSshPerms" ] ''
-                    DEV_DIR="$HOME/Dev"
-                    SMANAGER_DIR="$DEV_DIR/masiero/smanager"
-                    SMANAGER_REPO="ssh://git@gitea.masiero.internal:2222/masiero/smanager.git"
-
-                    mkdir -p "$DEV_DIR"
-
-                    if [ -d "$SMANAGER_DIR/.git" ]; then
-                      echo "Updating smanager repo in $SMANAGER_DIR ..."
-                      git -C "$SMANAGER_DIR" pull --ff-only || true
-                    else
-                      echo "Cloning smanager repo to $SMANAGER_DIR ..."
-                      git clone "$SMANAGER_REPO" "$SMANAGER_DIR" || true
+                      chmod 700 "$SSH_DIR" || true
+                      find "$SSH_DIR" -type d -exec chmod 700 {} \; || true
+                      # Do not chmod symlinks (e.g. Home Manager generated ~/.ssh/config in /nix/store)
+                      find "$SSH_DIR" -type f ! -name "*.pub" -exec chmod 600 {} \; || true
+                      find "$SSH_DIR" -type f -name "*.pub" -exec chmod 644 {} \; || true
                     fi
                   '';
 
@@ -227,7 +214,7 @@
                       end
 
                       set -l _kc_keys
-                      for k in ~/.ssh/batman_rsa ~/.ssh/id_DAM_20191006 ~/.ssh/github-dmasiero
+                      for k in ~/.ssh/DM-20260211 ~/.ssh/id_DAM_20191006 ~/.ssh/github-dmasiero ~/.ssh/batman_rsa
                         if test -f $k
                           set _kc_keys $_kc_keys $k
                         end
@@ -252,6 +239,11 @@
 
                     interactiveShellInit = ''
                       set fish_greeting ""
+
+                      # Force fish-native Ctrl-R history UI (override plugin bindings like fzf)
+                      bind \cr history-pager
+                      bind -M insert \cr history-pager
+                      bind -M default \cr history-pager
 
                       # Source smanager (bash script — requires bass)
                       if test -f ~/Dev/masiero/smanager/smanager

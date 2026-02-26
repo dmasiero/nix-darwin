@@ -38,10 +38,11 @@ echo ""
 echo "This script will:"
 echo "1. Install Determinate Nix to manage packages and configurations."
 echo "2. Install Homebrew for additional package management."
-echo "3. Create a solid-color wallpaper file (#1C1C1E) in ~/dotfiles/wallpapers."
-echo "4. Apply that wallpaper to all desktops."
-echo "5. Clone the Nix configuration repo from GitHub to ~/nix."
-echo "6. Install and switch to the Nix Darwin configuration from ~/nix."
+echo "3. Set macOS appearance to Dark Mode."
+echo "4. Create a solid-color wallpaper file (#1C1C1E) in ~/dotfiles/wallpapers."
+echo "5. Apply that wallpaper to all desktops."
+echo "6. Clone the Nix configuration repo from GitHub to ~/nix."
+echo "7. Install and switch to the Nix Darwin configuration from ~/nix."
 echo ""
 
 # Prompt user to continue or exit
@@ -161,6 +162,10 @@ fi
 
 echo "Deleting temporary key $TEMP_GITEA_KEY ..."
 rm -f "$TEMP_GITEA_KEY"
+
+# Set macOS appearance to Dark Mode
+echo "Setting macOS appearance to Dark Mode..."
+osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' || true
 
 # Create wallpaper file (solid #1C1C1E) if missing
 WALLPAPER_FILE="$HOME/dotfiles/wallpapers/solid-1C1C1E.ppm"
