@@ -286,4 +286,13 @@ else
   echo -e "${COLOR_YELLOW}⚠️ Build complete with issues. darwin-rebuild exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
 fi
 
+if [ "${TERM_PROGRAM:-}" = "Apple_Terminal" ]; then
+  printf "%b" "${COLOR_MAGENTA}Quit Terminal now?${COLOR_RESET} ${COLOR_DIM}(Y/n)${COLOR_RESET}: "
+  read QUIT_TERMINAL </dev/tty
+  if [[ -z "$QUIT_TERMINAL" || "$QUIT_TERMINAL" =~ ^[Yy]$ ]]; then
+    echo -e "${COLOR_YELLOW}Closing Terminal...${COLOR_RESET}"
+    killall Terminal 2>/dev/null || true
+  fi
+fi
+
 exit $DARWIN_SWITCH_EXIT
