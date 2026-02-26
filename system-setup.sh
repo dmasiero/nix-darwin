@@ -31,8 +31,7 @@ cat <<'EOF'
                 @@BP       "BBBBBB         t@@B               
 EOF
 echo -e "\033[0m" # Reset color
-echo "🚀 Welcome to Doug's Nix-Darwin System Setup! 🌌"
-echo "🔐 Have your secrets ready to transfers via sneaker net! 👟🌎💻"
+echo "🚀 Welcome to renix! 🌌"
 echo ""
 
 # Explanation of what the script will do
@@ -195,9 +194,9 @@ if [ -f /etc/zshenv ] && [ ! -f /etc/zshenv.before-nix-darwin ]; then
 fi
 
 # Install Nix Darwin from local flake
-echo "Installing Nix Darwin from $REPO_DIR#$FLAKE_HOST ..."
+echo "Installing Nix Darwin from $REPO_DIR ..."
 set +e
-sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#$FLAKE_HOST"
+sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#thismac"
 DARWIN_SWITCH_EXIT=$?
 set -e
 

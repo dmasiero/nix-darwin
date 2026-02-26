@@ -115,7 +115,7 @@
         };
     in
     {
-      darwinConfigurations."Dougs-Virtual-Machine" = nix-darwin.lib.darwinSystem {
+      darwinConfigurations."thismac" = nix-darwin.lib.darwinSystem {
         modules = [
           configuration
           home-manager.darwinModules.home-manager
