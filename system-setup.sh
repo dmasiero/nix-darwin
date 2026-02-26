@@ -42,7 +42,9 @@ echo "3. Set macOS appearance to Dark Mode."
 echo "4. Create a solid-color wallpaper file (#1C1C1E) in ~/dotfiles/wallpapers."
 echo "5. Apply that wallpaper to all desktops."
 echo "6. Clone the Nix configuration repo from GitHub to ~/nix."
-echo "7. Install and switch to the Nix Darwin configuration from ~/nix."
+echo "7. Switch that repo's origin remote to SSH."
+echo "8. Install and switch to the Nix Darwin configuration from ~/nix."
+echo "9. Set Helium as the default browser for macOS."
 echo ""
 
 # Prompt user to continue or exit
@@ -108,6 +110,11 @@ if [ -d "$REPO_DIR/.git" ]; then
   git -C "$REPO_DIR" pull --ff-only
 else
   git clone https://github.com/dmasiero/nix-darwin.git "$REPO_DIR"
+fi
+
+# After initial HTTPS clone, switch origin to SSH for normal day-to-day use
+if git -C "$REPO_DIR" remote get-url origin >/dev/null 2>&1; then
+  git -C "$REPO_DIR" remote set-url origin git@github.com:dmasiero/nix-darwin.git || true
 fi
 
 # Clone dotfiles repo using temporary Gitea key from ~/
@@ -209,5 +216,31 @@ set -e
 # Must run after darwin-rebuild.
 echo "Restarting Dock to apply shortcut changes..."
 killall Dock || true
+
+# Set Helium as default browser for HTTP/HTTPS + HTML
+# (requires duti; install via Homebrew if missing)
+echo "Setting Helium as default browser..."
+if [ -d "/Applications/Helium.app" ]; then
+  if ! command -v duti >/dev/null 2>&1; then
+    brew install duti || true
+  fi
+
+  if command -v duti >/dev/null 2>&1; then
+    HELIUM_BUNDLE_ID="$(osascript -e 'id of app "Helium"' 2>/dev/null || true)"
+    if [ -z "$HELIUM_BUNDLE_ID" ]; then
+      HELIUM_BUNDLE_ID="com.imobie.Helium"
+    fi
+
+    duti -s "$HELIUM_BUNDLE_ID" http all || true
+    duti -s "$HELIUM_BUNDLE_ID" https all || true
+    duti -s "$HELIUM_BUNDLE_ID" public.html all || true
+    duti -s "$HELIUM_BUNDLE_ID" public.xhtml all || true
+    killall cfprefsd 2>/dev/null || true
+  else
+    echo "Warning: duti unavailable; could not set default browser automatically."
+  fi
+else
+  echo "Warning: /Applications/Helium.app not found; skipping default browser setup."
+fi
 
 exit $DARWIN_SWITCH_EXIT
