@@ -45,6 +45,7 @@ echo "6. Clone the Nix configuration repo from GitHub to ~/nix."
 echo "7. Switch that repo's origin remote to SSH."
 echo "8. Install and switch to the Nix Darwin configuration from ~/nix."
 echo "9. Set Helium as the default browser for macOS."
+echo "10. Disable macOS Tips notifications/popups."
 echo ""
 
 # Prompt user to continue or exit
@@ -242,5 +243,16 @@ if [ -d "/Applications/Helium.app" ]; then
 else
   echo "Warning: /Applications/Helium.app not found; skipping default browser setup."
 fi
+
+# Disable macOS Tips daemon + mark welcome tips as seen
+# (prevents the recurring "Tips" nudges/notifications)
+echo "Disabling macOS Tips popups..."
+USER_UID="$(id -u)"
+launchctl disable "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
+launchctl bootout "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
+defaults write com.apple.tipsd TPSWaitingToShowWelcomeNotification -int 0 || true
+defaults write com.apple.tipsd TPSWelcomeNotificationReminderState -int 1 || true
+defaults write com.apple.tipsd TPSWelcomeNotificationViewedVersion -int "$(sw_vers -productVersion | cut -d. -f1)" || true
+killall tipsd 2>/dev/null || true
 
 exit $DARWIN_SWITCH_EXIT
