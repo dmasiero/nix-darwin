@@ -1,7 +1,28 @@
 #!/bin/bash
+# Console colors
+COLOR_RESET="\033[0m"
+COLOR_CYAN="\033[1;36m"
+COLOR_YELLOW="\033[1;33m"
+COLOR_MAGENTA="\033[1;35m"
+COLOR_GREEN="\033[1;32m"
+COLOR_DIM="\033[2m"
+COLOR_NIX_BLUE_DARK="\033[38;2;82;120;195m"
+COLOR_NIX_BLUE_LIGHT="\033[38;2;126;180;230m"
+
+print_separator() {
+  echo -e "${COLOR_DIM}----------------------------------------${COLOR_RESET}"
+}
+
 # Cool Nix-themed ASCII art and startup prompt
-echo -e "\033[1;34m" # Blue for a cool Nix vibe
-cat <<'EOF'
+_art_row=0
+while IFS= read -r _line; do
+  if (( _art_row % 2 == 0 )); then
+    printf "%b%s%b\n" "$COLOR_NIX_BLUE_DARK" "$_line" "$COLOR_RESET"
+  else
+    printf "%b%s%b\n" "$COLOR_NIX_BLUE_LIGHT" "$_line" "$COLOR_RESET"
+  fi
+  _art_row=$((_art_row + 1))
+done <<'EOF'
                 ___          ______         ___               
                J@@@@,        '@@@@@@,     ,@@@@p              
                @@@B@@L        `@@@@@@_   ,@@@@@@              
@@ -30,12 +51,21 @@ cat <<'EOF'
                @@@@@@     %@@@@@g         Q@@@@@`             
                 @@BP       "BBBBBB         t@@B               
 EOF
-echo -e "\033[0m" # Reset color
-echo "🚀 Welcome to renix! 🌌"
+
+echo ""
+echo -e "🚀 Welcome to ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_RESET}! 🌌"
 echo ""
 
+# Preflight: required temporary key for dotfiles clone
+TEMP_GITEA_KEY="$HOME/gitea_masiero_doug"
+if [ ! -f "$TEMP_GITEA_KEY" ]; then
+  echo -e "${COLOR_YELLOW}Error:${COLOR_RESET} required temporary key ${COLOR_CYAN}$TEMP_GITEA_KEY${COLOR_RESET} not found."
+  echo -e "Place ${COLOR_CYAN}gitea_masiero_doug${COLOR_RESET} in your home directory and re-run setup."
+  exit 1
+fi
+
 # Explanation of what the script will do
-echo "This script will:"
+echo -e "${COLOR_MAGENTA}This script will:${COLOR_RESET}"
 echo "1. Install Determinate Nix to manage packages and configurations."
 echo "2. Install Homebrew for additional package management."
 echo "3. Set macOS appearance to Dark Mode."
@@ -44,70 +74,67 @@ echo "5. Apply that wallpaper to all desktops."
 echo "6. Clone the Nix configuration repo from GitHub to ~/nix."
 echo "7. Switch that repo's origin remote to SSH."
 echo "8. Install and switch to the Nix Darwin configuration from ~/nix."
-echo "9. Set Helium as the default browser for macOS."
-echo "10. Disable macOS Tips notifications/popups."
+echo "9. Disable macOS Tips notifications/popups."
 echo ""
 
 # Prompt user to continue or exit
-echo "Do you want to continue with the setup? (y/n)"
-read -p "Enter your choice: " choice </dev/tty
+echo -e "${COLOR_MAGENTA}Do you want to continue with the setup?${COLOR_RESET} ${COLOR_DIM}(y/N)${COLOR_RESET}"
+printf "%b" "${COLOR_CYAN}Enter your choice:${COLOR_RESET} "
+read choice </dev/tty
 if [[ ! "$choice" =~ ^[Yy]$ ]]; then
-  echo "Setup aborted. Exiting..."
+  echo -e "${COLOR_YELLOW}Setup aborted. Exiting...${COLOR_RESET}"
   exit 0
 fi
-echo "----------------------------------------"
+print_separator
 
 # Prompt for hostname before installing tooling
 CURRENT_LOCAL_HOSTNAME="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
 CURRENT_COMPUTER_NAME="$(scutil --get ComputerName 2>/dev/null || hostname -s)"
 
-echo "Current hostname: ${CURRENT_LOCAL_HOSTNAME}"
-read -p "Enter desired hostname (leave blank to keep current): " NEW_HOSTNAME </dev/tty
+echo -e "${COLOR_YELLOW}Current hostname:${COLOR_RESET} ${COLOR_CYAN}${CURRENT_LOCAL_HOSTNAME}${COLOR_RESET}"
+printf "%b" "${COLOR_MAGENTA}Enter desired hostname${COLOR_RESET} ${COLOR_DIM}(leave blank to keep current)${COLOR_RESET}: "
+read NEW_HOSTNAME </dev/tty
 
 if [ -n "$NEW_HOSTNAME" ]; then
-  echo "Applying hostname '$NEW_HOSTNAME' ..."
+  echo -e "${COLOR_GREEN}Applying hostname '${NEW_HOSTNAME}' ...${COLOR_RESET}"
   if sudo scutil --set LocalHostName "$NEW_HOSTNAME" \
     && sudo scutil --set HostName "$NEW_HOSTNAME" \
     && sudo scutil --set ComputerName "$NEW_HOSTNAME"; then
-    echo "Hostname updated from '${CURRENT_COMPUTER_NAME}' to '${NEW_HOSTNAME}'."
+    echo -e "${COLOR_GREEN}Hostname updated from${COLOR_RESET} '${CURRENT_COMPUTER_NAME}' ${COLOR_GREEN}to${COLOR_RESET} '${NEW_HOSTNAME}'."
   else
-    echo "Warning: failed to set hostname. Continuing with existing hostname."
+    echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} failed to set hostname. Continuing with existing hostname."
   fi
 else
-  echo "Keeping existing hostname: ${CURRENT_LOCAL_HOSTNAME}"
+  echo -e "${COLOR_DIM}Keeping existing hostname:${COLOR_RESET} ${CURRENT_LOCAL_HOSTNAME}"
 fi
 
-# Preflight: required temporary key for dotfiles clone
-TEMP_GITEA_KEY="$HOME/gitea_masiero_doug"
-if [ ! -f "$TEMP_GITEA_KEY" ]; then
-  echo "Error: required temporary key $TEMP_GITEA_KEY not found."
-  echo "Place gitea_masiero_doug in your home directory and re-run setup."
-  exit 1
-fi
+print_separator
 
 # Install Determinate Nix
-echo "Installing Determinate Nix..."
+echo -e "${COLOR_GREEN}Installing Determinate Nix...${COLOR_RESET}"
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install
 
 # Activate Determinate Nix (Current shell)
-echo "Activating Determinate Nix..."
+echo -e "${COLOR_GREEN}Activating Determinate Nix...${COLOR_RESET}"
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
 # Install Homebrew
-echo "Installing Homebrew..."
+echo -e "${COLOR_GREEN}Installing Homebrew...${COLOR_RESET}"
 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Activate Homebrew (Current shell)
-echo "Activating Homebrew..."
+echo -e "${COLOR_GREEN}Activating Homebrew...${COLOR_RESET}"
 eval "$(/opt/homebrew/bin/brew shellenv)"
+
+print_separator
 
 # Clone Nix configuration repo
 REPO_DIR="$HOME/nix"
 FLAKE_HOST="$(scutil --get LocalHostName 2>/dev/null || hostname -s)"
 
-echo "Cloning Nix configuration repo to $REPO_DIR ..."
+echo -e "${COLOR_GREEN}Cloning Nix configuration repo to${COLOR_RESET} ${COLOR_CYAN}$REPO_DIR${COLOR_RESET} ..."
 if [ -d "$REPO_DIR/.git" ]; then
-  echo "$REPO_DIR already exists; pulling latest changes..."
+  echo -e "${COLOR_DIM}$REPO_DIR already exists; pulling latest changes...${COLOR_RESET}"
   git -C "$REPO_DIR" pull --ff-only
 else
   git clone https://github.com/dmasiero/nix-darwin.git "$REPO_DIR"
@@ -123,9 +150,9 @@ DOTFILES_DIR="$HOME/dotfiles"
 DOTFILES_REPO="ssh://git@gitea.masiero.internal:2222/masiero/dotfiles.git"
 
 chmod 600 "$TEMP_GITEA_KEY" || true
-echo "Cloning dotfiles repo to $DOTFILES_DIR ..."
+echo -e "${COLOR_GREEN}Cloning dotfiles repo to${COLOR_RESET} ${COLOR_CYAN}$DOTFILES_DIR${COLOR_RESET} ..."
 if [ -d "$DOTFILES_DIR/.git" ]; then
-  echo "$DOTFILES_DIR already exists; pulling latest changes..."
+  echo -e "${COLOR_DIM}$DOTFILES_DIR already exists; pulling latest changes...${COLOR_RESET}"
   GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
     git -C "$DOTFILES_DIR" pull --ff-only
 else
@@ -136,17 +163,30 @@ fi
 # Symlink ~/.ssh -> ~/dotfiles/ssh after dotfiles clone completes
 if [ -d "$DOTFILES_DIR/ssh" ]; then
   if [ -e "$HOME/.ssh" ] && [ ! -L "$HOME/.ssh" ]; then
-    echo "Backing up existing ~/.ssh to ~/.ssh.before-dotfiles-link ..."
-    mv "$HOME/.ssh" "$HOME/.ssh.before-dotfiles-link"
+    SSH_BACKUP_PATH="/tmp/ssh.before-dotfiles-link.$(date +%Y%m%d-%H%M%S)"
+    echo "Existing ~/.ssh found; creating temporary backup at $SSH_BACKUP_PATH ..."
+    mv "$HOME/.ssh" "$SSH_BACKUP_PATH"
+
+    echo ""
+    echo -e "${COLOR_YELLOW}Temporary SSH backup created outside your home directory:${COLOR_RESET}"
+    echo -e "  ${COLOR_CYAN}$SSH_BACKUP_PATH${COLOR_RESET}"
+    printf "%b" "${COLOR_MAGENTA}Keep this backup?${COLOR_RESET} ${COLOR_DIM}(y/N)${COLOR_RESET}: "
+    read KEEP_SSH_BACKUP </dev/tty
+    if [[ ! "$KEEP_SSH_BACKUP" =~ ^[Yy]$ ]]; then
+      echo -e "${COLOR_YELLOW}Deleting temporary SSH backup at${COLOR_RESET} ${COLOR_CYAN}$SSH_BACKUP_PATH${COLOR_RESET} ..."
+      rm -rf "$SSH_BACKUP_PATH"
+    else
+      echo -e "${COLOR_YELLOW}Keeping temporary SSH backup at${COLOR_RESET} ${COLOR_CYAN}$SSH_BACKUP_PATH${COLOR_RESET}"
+    fi
   fi
   ln -sfn "$DOTFILES_DIR/ssh" "$HOME/.ssh"
 else
-  echo "Warning: $DOTFILES_DIR/ssh not found; skipping ~/.ssh symlink."
+  echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} $DOTFILES_DIR/ssh not found; skipping ~/.ssh symlink."
 fi
 
 # Ensure SSH key permissions are locked down after clone/symlink
 if [ -e "$HOME/.ssh" ]; then
-  echo "Fixing SSH permissions in ~/.ssh ..."
+  echo -e "${COLOR_GREEN}Fixing SSH permissions in ~/.ssh ...${COLOR_RESET}"
   chmod 700 "$HOME/.ssh" || true
   find -L "$HOME/.ssh" -type f ! -name "*.pub" -exec chmod 600 {} \; || true
   find -L "$HOME/.ssh" -type f -name "*.pub" -exec chmod 644 {} \; || true
@@ -158,9 +198,9 @@ SMANAGER_DIR="$SMANAGER_PARENT_DIR/smanager"
 SMANAGER_REPO="ssh://git@gitea.masiero.internal:2222/masiero/smanager.git"
 
 mkdir -p "$SMANAGER_PARENT_DIR"
-echo "Cloning smanager repo to $SMANAGER_DIR ..."
+echo -e "${COLOR_GREEN}Cloning smanager repo to${COLOR_RESET} ${COLOR_CYAN}$SMANAGER_DIR${COLOR_RESET} ..."
 if [ -d "$SMANAGER_DIR/.git" ]; then
-  echo "$SMANAGER_DIR already exists; pulling latest changes..."
+  echo -e "${COLOR_DIM}$SMANAGER_DIR already exists; pulling latest changes...${COLOR_RESET}"
   GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
     git -C "$SMANAGER_DIR" pull --ff-only
 else
@@ -168,19 +208,21 @@ else
     git clone "$SMANAGER_REPO" "$SMANAGER_DIR"
 fi
 
-echo "Deleting temporary key $TEMP_GITEA_KEY ..."
+echo -e "${COLOR_GREEN}Deleting temporary key${COLOR_RESET} ${COLOR_CYAN}$TEMP_GITEA_KEY${COLOR_RESET} ..."
 rm -f "$TEMP_GITEA_KEY"
 
+print_separator
+
 # Set macOS appearance to Dark Mode
-echo "Setting macOS appearance to Dark Mode..."
+echo -e "${COLOR_GREEN}Setting macOS appearance to Dark Mode...${COLOR_RESET}"
 osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' || true
 
 # Create wallpaper file (solid #1C1C1E) if missing
 WALLPAPER_FILE="$HOME/dotfiles/wallpapers/solid-1C1C1E.ppm"
 if [ -f "$WALLPAPER_FILE" ]; then
-  echo "Wallpaper file already exists at $WALLPAPER_FILE; skipping create."
+  echo -e "${COLOR_DIM}Wallpaper file already exists at $WALLPAPER_FILE; skipping create.${COLOR_RESET}"
 else
-  echo "Creating wallpaper file at $WALLPAPER_FILE ..."
+  echo -e "${COLOR_GREEN}Creating wallpaper file at${COLOR_RESET} ${COLOR_CYAN}$WALLPAPER_FILE${COLOR_RESET} ..."
   mkdir -p "$(dirname "$WALLPAPER_FILE")"
   cat > "$WALLPAPER_FILE" <<'EOF'
 P3
@@ -191,7 +233,7 @@ EOF
 fi
 
 # Apply wallpaper to all desktops
-echo "Applying wallpaper to all desktops..."
+echo -e "${COLOR_GREEN}Applying wallpaper to all desktops...${COLOR_RESET}"
 osascript <<EOF
 tell application "System Events"
   tell every desktop
@@ -202,51 +244,33 @@ EOF
 
 # Preflight: avoid nix-darwin activation abort on existing /etc/zshenv
 if [ -f /etc/zshenv ] && [ ! -f /etc/zshenv.before-nix-darwin ]; then
-  echo "Backing up existing /etc/zshenv to /etc/zshenv.before-nix-darwin ..."
+  echo -e "${COLOR_YELLOW}Backing up existing /etc/zshenv to /etc/zshenv.before-nix-darwin ...${COLOR_RESET}"
   sudo mv /etc/zshenv /etc/zshenv.before-nix-darwin
 fi
 
+print_separator
+
 # Install Nix Darwin from local flake
-echo "Installing Nix Darwin from $REPO_DIR ..."
-set +e
-sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#thismac"
-DARWIN_SWITCH_EXIT=$?
-set -e
+# Capture exit code but always continue to post-setup tasks.
+echo -e "${COLOR_GREEN}Installing Nix Darwin from${COLOR_RESET} ${COLOR_CYAN}$REPO_DIR${COLOR_RESET} ..."
+echo -e "${COLOR_GREEN}Starting Home Manager activation${COLOR_RESET}"
+if sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#thismac"; then
+  DARWIN_SWITCH_EXIT=0
+else
+  DARWIN_SWITCH_EXIT=$?
+fi
+
+echo -e "${COLOR_CYAN}darwin-rebuild finished with exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
+print_separator
 
 # Restart Dock so updated shortcuts are applied
 # Must run after darwin-rebuild.
-echo "Restarting Dock to apply shortcut changes..."
+echo -e "${COLOR_GREEN}Restarting Dock to apply shortcut changes...${COLOR_RESET}"
 killall Dock || true
-
-# Set Helium as default browser for HTTP/HTTPS + HTML
-# (requires duti; install via Homebrew if missing)
-echo "Setting Helium as default browser..."
-if [ -d "/Applications/Helium.app" ]; then
-  if ! command -v duti >/dev/null 2>&1; then
-    brew install duti || true
-  fi
-
-  if command -v duti >/dev/null 2>&1; then
-    HELIUM_BUNDLE_ID="$(osascript -e 'id of app "Helium"' 2>/dev/null || true)"
-    if [ -z "$HELIUM_BUNDLE_ID" ]; then
-      HELIUM_BUNDLE_ID="com.imobie.Helium"
-    fi
-
-    duti -s "$HELIUM_BUNDLE_ID" http all || true
-    duti -s "$HELIUM_BUNDLE_ID" https all || true
-    duti -s "$HELIUM_BUNDLE_ID" public.html all || true
-    duti -s "$HELIUM_BUNDLE_ID" public.xhtml all || true
-    killall cfprefsd 2>/dev/null || true
-  else
-    echo "Warning: duti unavailable; could not set default browser automatically."
-  fi
-else
-  echo "Warning: /Applications/Helium.app not found; skipping default browser setup."
-fi
 
 # Disable macOS Tips daemon + mark welcome tips as seen
 # (prevents the recurring "Tips" nudges/notifications)
-echo "Disabling macOS Tips popups..."
+echo -e "${COLOR_GREEN}Disabling macOS Tips popups...${COLOR_RESET}"
 USER_UID="$(id -u)"
 launchctl disable "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
 launchctl bootout "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
@@ -254,5 +278,12 @@ defaults write com.apple.tipsd TPSWaitingToShowWelcomeNotification -int 0 || tru
 defaults write com.apple.tipsd TPSWelcomeNotificationReminderState -int 1 || true
 defaults write com.apple.tipsd TPSWelcomeNotificationViewedVersion -int "$(sw_vers -productVersion | cut -d. -f1)" || true
 killall tipsd 2>/dev/null || true
+
+print_separator
+if [ "$DARWIN_SWITCH_EXIT" -eq 0 ]; then
+  echo -e "${COLOR_GREEN}✅ Build complete. Renix setup finished successfully.${COLOR_RESET}"
+else
+  echo -e "${COLOR_YELLOW}⚠️ Build complete with issues. darwin-rebuild exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
+fi
 
 exit $DARWIN_SWITCH_EXIT

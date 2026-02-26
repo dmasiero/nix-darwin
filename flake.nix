@@ -46,7 +46,9 @@
             };
 
             activationScripts.postActivation.text = ''
-              sudo -u doug /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u
+              (
+                sudo -u doug /System/Library/PrivateFrameworks/SystemAdministration.framework/Resources/activateSettings -u || true
+              ) &
             '';
           };
 
