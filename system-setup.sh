@@ -201,6 +201,25 @@ fi
 
 print_separator
 
+# Pre-load SSH keys into Apple Keychain so first SSH use won't prompt later
+if [ -e "$HOME/.ssh" ] && command -v ssh-add >/dev/null 2>&1; then
+  echo -e "${COLOR_GREEN}Adding SSH keys to Apple Keychain (you may be prompted once per encrypted key)...${COLOR_RESET}"
+  KEYCHAIN_KEYS=(
+    "$HOME/.ssh/github-dmasiero"
+    "$HOME/.ssh/gitea_masiero_doug"
+    "$HOME/.ssh/DMMF-20211104"
+    "$HOME/.ssh/id_DAM_20191006"
+    "$HOME/.ssh/batman_rsa"
+  )
+  for key_path in "${KEYCHAIN_KEYS[@]}"; do
+    if [ -f "$key_path" ]; then
+      ssh-add --apple-use-keychain "$key_path" || true
+    fi
+  done
+fi
+
+print_separator
+
 # Clone smanager repo using temporary Gitea key before deleting it
 SMANAGER_PARENT_DIR="$HOME/Dev/masiero"
 SMANAGER_DIR="$SMANAGER_PARENT_DIR/smanager"

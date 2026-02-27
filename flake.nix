@@ -235,18 +235,6 @@
                       if test -x /opt/homebrew/bin/brew
                         eval (/opt/homebrew/bin/brew shellenv)
                       end
-
-                      set -l _kc_keys
-                      for k in ~/.ssh/DM-20260211 ~/.ssh/id_DAM_20191006 ~/.ssh/github-dmasiero ~/.ssh/batman_rsa
-                        if test -f $k
-                          set _kc_keys $_kc_keys $k
-                        end
-                      end
-
-                      if type -q keychain; and test (count $_kc_keys) -gt 0
-                        set -lx SHELL (command -v fish)
-                        keychain --eval --quiet $_kc_keys | source
-                      end
                     '';
 
                     plugins = [
@@ -590,9 +578,6 @@
                   programs.ssh = {
                     enable = true;
                     matchBlocks = {
-                      "hf.co" = {
-                        identityFile = [ "~/.ssh/hf-bruari-20231209" ];
-                      };
                       "github.com" = {
                         extraOptions = {
                           AddKeysToAgent = "yes";
@@ -606,6 +591,7 @@
                         user = "git";
                         port = 2222;
                         extraOptions = {
+                          AddKeysToAgent = "yes";
                           IdentitiesOnly = "yes";
                           UseKeychain = "yes";
                         };
@@ -613,6 +599,8 @@
                       };
                       "*" = {
                         extraOptions = {
+                          IgnoreUnknown = "UseKeychain,AddKeysToAgent";
+                          AddKeysToAgent = "yes";
                           HostkeyAlgorithms = "+ssh-rsa";
                           PubkeyAcceptedAlgorithms = "+ssh-rsa";
                           IdentitiesOnly = "yes";
