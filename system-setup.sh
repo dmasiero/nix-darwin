@@ -70,15 +70,16 @@ fi
 # Explanation of what the script will do
 echo -e "${COLOR_MAGENTA}This script will:${COLOR_RESET}"
 echo "1. Install Determinate Nix to manage packages and configurations."
-echo "2. Install Homebrew for additional package management."
-echo "3. Clone the Nix configuration repo from GitHub to ~/nix."
-echo "4. Switch that repo's origin remote to SSH."
-echo "5. Clone required private repos (dotfiles + smanager)."
-echo "6. Install and switch to the Nix Darwin configuration from ~/nix."
-echo "7. Disable macOS Tips notifications/popups."
-echo "8. Set the local user profile picture from repo assets."
-echo "9. Restart Dock."
-echo "10. Set macOS appearance to Dark Mode and apply wallpaper."
+echo "2. Install Xcode Command Line Tools (required by Homebrew)."
+echo "3. Install Homebrew for additional package management."
+echo "4. Clone the Nix configuration repo from GitHub to ~/nix."
+echo "5. Switch that repo's origin remote to SSH."
+echo "6. Clone required private repos (dotfiles + smanager)."
+echo "7. Install and switch to the Nix Darwin configuration from ~/nix."
+echo "8. Disable macOS Tips notifications/popups."
+echo "9. Set the local user profile picture from repo assets."
+echo "10. Restart Dock."
+echo "11. Set macOS appearance to Dark Mode and apply wallpaper."
 echo ""
 
 # Prompt user to continue or exit
@@ -122,9 +123,55 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 echo -e "${COLOR_GREEN}Activating Determinate Nix...${COLOR_RESET}"
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
 
-# Install Homebrew
+# Install Xcode Command Line Tools (required for Homebrew) without user interaction
+echo -e "${COLOR_GREEN}Checking Xcode Command Line Tools...${COLOR_RESET}"
+XCODE_SELECT_PATH="$(xcode-select -p 2>/dev/null || true)"
+CLT_RECEIPT_VERSION="$(pkgutil --pkg-info com.apple.pkg.CLTools_Executables 2>/dev/null | awk -F': ' '/version:/{print $2}')"
+
+if [ -n "$XCODE_SELECT_PATH" ]; then
+  echo -e "${COLOR_DIM}xcode-select path:${COLOR_RESET} ${COLOR_CYAN}${XCODE_SELECT_PATH}${COLOR_RESET}"
+  if [ -n "$CLT_RECEIPT_VERSION" ]; then
+    echo -e "${COLOR_DIM}CLT version:${COLOR_RESET} ${COLOR_CYAN}${CLT_RECEIPT_VERSION}${COLOR_RESET}"
+  else
+    echo -e "${COLOR_DIM}No standalone CLT package receipt found (full Xcode may be providing developer tools).${COLOR_RESET}"
+  fi
+  echo -e "${COLOR_DIM}Xcode developer tools already available; skipping CLT install.${COLOR_RESET}"
+else
+  echo -e "${COLOR_GREEN}Installing Xcode Command Line Tools...${COLOR_RESET}"
+  CLT_IN_PROGRESS_FILE="/tmp/.com.apple.dt.CommandLineTools.installondemand.in-progress"
+  touch "$CLT_IN_PROGRESS_FILE"
+
+  CLT_LABEL="$(softwareupdate -l 2>/dev/null | grep -E '^\s*\*.*Command Line Tools' | head -n 1 | sed -E 's/^[[:space:]]*\*[[:space:]]*//')"
+
+  if [ -z "$CLT_LABEL" ]; then
+    rm -f "$CLT_IN_PROGRESS_FILE"
+    echo -e "${COLOR_YELLOW}Error:${COLOR_RESET} unable to find a Command Line Tools update via softwareupdate."
+    exit 1
+  fi
+
+  echo -e "${COLOR_DIM}Installing update:${COLOR_RESET} ${COLOR_CYAN}${CLT_LABEL}${COLOR_RESET}"
+  if sudo softwareupdate -i "$CLT_LABEL" --verbose; then
+    sudo xcode-select --switch /Library/Developer/CommandLineTools || true
+    CLT_RECEIPT_VERSION="$(pkgutil --pkg-info com.apple.pkg.CLTools_Executables 2>/dev/null | awk -F': ' '/version:/{print $2}')"
+    if [ -n "$CLT_RECEIPT_VERSION" ]; then
+      echo -e "${COLOR_GREEN}Xcode Command Line Tools installed successfully (version ${CLT_RECEIPT_VERSION}).${COLOR_RESET}"
+    else
+      echo -e "${COLOR_GREEN}Xcode Command Line Tools installed successfully.${COLOR_RESET}"
+    fi
+  else
+    rm -f "$CLT_IN_PROGRESS_FILE"
+    echo -e "${COLOR_YELLOW}Error:${COLOR_RESET} failed to install Xcode Command Line Tools."
+    exit 1
+  fi
+
+  rm -f "$CLT_IN_PROGRESS_FILE"
+fi
+
+print_separator
+
+# Install Homebrew (non-interactive)
 echo -e "${COLOR_GREEN}Installing Homebrew...${COLOR_RESET}"
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+NONINTERACTIVE=1 CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
 # Activate Homebrew (Current shell)
 echo -e "${COLOR_GREEN}Activating Homebrew...${COLOR_RESET}"
