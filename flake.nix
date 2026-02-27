@@ -29,6 +29,11 @@
                 HideDesktop = true;
               };
               finder.FXPreferredViewStyle = "Nlsv";
+              NSGlobalDomain = {
+                KeyRepeat = 2;
+                InitialKeyRepeat = 15;
+                ApplePressAndHoldEnabled = false;
+              };
               dock = {
                 autohide = true;
                 show-recents = false;
