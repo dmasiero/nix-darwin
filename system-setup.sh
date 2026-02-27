@@ -24,22 +24,33 @@ while IFS= read -r _line; do
   fi
   _art_row=$((_art_row + 1))
 done <<'EOF'
-     .  *  .    *     .   *    .  *   .
-        .    *    .        *    .
-   *       .  _--_    * _--_     .    *
-      .    _-~    ~-__-~    ~-_    .
-    *   _-~  _-~~-_    _-~~-_  ~-_ *  .
-   .  _~  _-~      ~--~      ~-_  ~_
-     /  _~    _--~~    ~~--_    ~_  \  *
-  * |  ~   _-~   ❄️ ReNix  ~-_   ~  |
-    |    _-~    *    .    *   ~-_    | .
-  . |  _~  _--~~        ~~--_  ~_  |
-     \_~ _~                    ~_ ~_/  *
-   *  \_/  ~-_    .    *  _-~  \_/  .
-    .       ~-__        __-~    *
-        *       ~~----~~     .     *
-     .    *   .       .   *    .
-          .       *       .       *
+,iii         ,,,,,.     ,::.
+              ttttti        ,::::;   .;;;;;
+              ,ttttti        .::;;; ,;;;;;,
+               .ttttt1        .;;;;;;;;;;.
+           ,,,,,:ttttt1,,,,,,,,.;;;;;;;;.
+          ttttttttttttttttttttt1 ;;;;;;
+         tttttttttttttttttttttttt ;;;;;.       :,
+        ,,,,,,,,,,,,,,,,,,,,,,,::, ;;;;;.     ;tt,
+               ,;;;;;;              ;;;;;,   ;tttt,
+              ,;;;;;:                ;;;;;: ;ttttt.
+             ,;;;,        R e N i x       ;;;;.ittttt.
+            ,;;;;.      [   ReNix   ]      .. ittttt,.....
+   ,;;;;::::;;;;;---------------------------1tttttttttttt1
+   ;;;;;::::;;;;.      macOS bootstrap      :tttttttttttttt
+    ,,,,,::::;;         with nix-darwin      .ttt;;;;;;;;;
+        ,:::;; 1tt,                   1ttttt
+       ,:::;; ttttt:                 tttttt
+       ::::;   ttttt:               tttttt
+        ::;     ttttt;             111111
+         ;       ttttt;:;;;;;;;;;;;;;;;;;;;;;;;;;
+                  ttttt;,;;;;;;;;;;;;;;;;;;:;;;;
+                 ;tttttt;,;;;;;;;;;;;;;;;;;;;;;
+                ;tttttttti        :;;;;;.
+               itttttttttti        :;;;;;.
+              ittttt, ttttt1        ,;;;;;.
+              :tttt,   ttttt1        ,;;;;.
+               ....     ,,,,,.         ..
 EOF
 
 echo ""
