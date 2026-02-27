@@ -79,6 +79,8 @@
             settings.experimental-features = "nix-command flakes";
           };
 
+          documentation.enable = false;
+
           environment.systemPackages = with pkgs; [ fish ];
 
           environment.shells = [ pkgs.fish ];
@@ -136,6 +138,8 @@
 
                   programs.home-manager.enable = true;
                   xdg.enable = true;
+
+                  manual.manpages.enable = false;
 
                   home.packages = with pkgs;
                     [

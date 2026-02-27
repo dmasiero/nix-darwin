@@ -14,6 +14,7 @@ print_separator() {
 }
 
 # Cool Nix-themed ASCII art and startup prompt
+echo ""
 _art_row=0
 while IFS= read -r _line; do
   if (( _art_row % 2 == 0 )); then
@@ -23,33 +24,22 @@ while IFS= read -r _line; do
   fi
   _art_row=$((_art_row + 1))
 done <<'EOF'
-                ___          ______         ___               
-               J@@@@,        '@@@@@@,     ,@@@@p              
-               @@@B@@L        `@@@@@@_   ,@@@@@@              
-                Q@ '@@L         @@@@@@L /@@@@@@               
-              ., ?jlT@:_        _0'q,@@@@@@@@W                
-          ___,9=._  _@_",,__,,@P==4@p_%@@g_'F                 
-         /@@@.'@@@,|[@@@',@@j[@P"_~gg_%_%@@@g       ,a        
-        A@@@@.'@@@|@'@@@ @|@@L ,@@@"_",q\@@@4`    ,@@@       
-       """""" l""""[."""_F'""";"@@"_g,o[|g@@ g@@@'/@@@@@      
-              '0qa~gLgmD'   gp._@ @@BB|][@@@'@@@"/@@@@@D      
-                Jgg'|gP  '"_~g@g' @gq'@ @@@@@@" @@@@@@P       
-               @@@@ g"      %g@L@b__"4N!@@@@B' @@@@@@/        
-  _ggggggggggg@@@@@ @         "*==>",''@@. _/,@@@@@@ggggggggp 
- g@@@@@@@@@@@@@@@@@ B,        +@D._    @@   _@@@@@@@@@@@@@@@@@
- '@@@@@@@@@@@@@@@@ ,  B_    _'_"_.@g_  @@@ /@@@@@@@@@@@@@@@@@/
-          [@@@@@D @,  [@@@@W,@@@@[Q@@@_ " _@@@@@P             
-         g@@@@@P @@@|| @@@@,@@@@@'a'@@@g @@@@@@F              
-        @@@@@@/ `@@@ g[,   @@@@@@,@@ _S@ @@@@@/               
-      .@@@@@@/    @@.@|@\  @@@@@@@ @@_..BBBBP                 
-       \@@@@       Q @ @@L @@@@@@@ @@@l9@@@@@@@@@@@@@@@F      
-        '@@         ,@:@@ @ @@@@@P_@@@@|@@@@@@@@@@@@@@/       
-                   A]9 @1<@@g_%W,@@@@@ >__g@@@> @@@@@         
-                  @@g[| ,  q~~Z %@@@k,<4mmBP>'                
-                 @@@@__ ___g@@ _~_,"_" '@@@@@@,               
-               _@@@@@@   @@@@@@L   >     @@@@@@L              
-               @@@@@@     %@@@@@g         Q@@@@@`             
-                @@BP       "BBBBBB         t@@B               
+     .  *  .    *     .   *    .  *   .
+        .    *    .        *    .
+   *       .  _--_    * _--_     .    *
+      .    _-~    ~-__-~    ~-_    .
+    *   _-~  _-~~-_    _-~~-_  ~-_ *  .
+   .  _~  _-~      ~--~      ~-_  ~_
+     /  _~    _--~~    ~~--_    ~_  \  *
+  * |  ~   _-~   ❄️ ReNix  ~-_   ~  |
+    |    _-~    *    .    *   ~-_    | .
+  . |  _~  _--~~        ~~--_  ~_  |
+     \_~ _~                    ~_ ~_/  *
+   *  \_/  ~-_    .    *  _-~  \_/  .
+    .       ~-__        __-~    *
+        *       ~~----~~     .     *
+     .    *   .       .   *    .
+          .       *       .       *
 EOF
 
 echo ""
@@ -145,6 +135,21 @@ if git -C "$REPO_DIR" remote get-url origin >/dev/null 2>&1; then
   git -C "$REPO_DIR" remote set-url origin git@github.com:dmasiero/nix-darwin.git || true
 fi
 
+print_separator
+
+# Apply local user profile photo from nix repo asset
+USER_PHOTO_FILE="$REPO_DIR/assets/user-photo.jpg"
+echo -e "${COLOR_GREEN}Applying user profile photo...${COLOR_RESET}"
+if [ -f "$USER_PHOTO_FILE" ]; then
+  sudo /usr/bin/dscl . -delete /Users/doug dsAttrTypeNative:AvatarRepresentation >/dev/null 2>&1 || true
+  sudo /usr/bin/dscl . -delete /Users/doug JPEGPhoto >/dev/null 2>&1 || true
+  sudo /usr/bin/dscl . -create /Users/doug Picture "$USER_PHOTO_FILE" >/dev/null 2>&1 || true
+else
+  echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} user profile photo not found at ${COLOR_CYAN}$USER_PHOTO_FILE${COLOR_RESET}; skipping."
+fi
+
+print_separator
+
 # Clone dotfiles repo using temporary Gitea key from ~/
 DOTFILES_DIR="$HOME/dotfiles"
 DOTFILES_REPO="ssh://git@gitea.masiero.internal:2222/masiero/dotfiles.git"
@@ -167,7 +172,6 @@ if [ -d "$DOTFILES_DIR/ssh" ]; then
     echo "Existing ~/.ssh found; creating temporary backup at $SSH_BACKUP_PATH ..."
     mv "$HOME/.ssh" "$SSH_BACKUP_PATH"
 
-    echo ""
     echo -e "${COLOR_YELLOW}Temporary SSH backup created outside your home directory:${COLOR_RESET}"
     echo -e "  ${COLOR_CYAN}$SSH_BACKUP_PATH${COLOR_RESET}"
     printf "%b" "${COLOR_MAGENTA}Keep this backup?${COLOR_RESET} ${COLOR_DIM}(y/N)${COLOR_RESET}: "
@@ -192,6 +196,8 @@ if [ -e "$HOME/.ssh" ]; then
   find -L "$HOME/.ssh" -type f -name "*.pub" -exec chmod 644 {} \; || true
 fi
 
+print_separator
+
 # Clone smanager repo using temporary Gitea key before deleting it
 SMANAGER_PARENT_DIR="$HOME/Dev/masiero"
 SMANAGER_DIR="$SMANAGER_PARENT_DIR/smanager"
@@ -213,8 +219,8 @@ rm -f "$TEMP_GITEA_KEY"
 
 print_separator
 
-# Set macOS appearance to Dark Mode
-echo -e "${COLOR_GREEN}Setting macOS appearance to Dark Mode...${COLOR_RESET}"
+# Set macOS appearance to Dark Mode and apply wallpaper
+echo -e "${COLOR_GREEN}Setting macOS appearance to Dark Mode and applying wallpaper...${COLOR_RESET}"
 osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' || true
 
 # Create wallpaper file (solid #1C1C1E) if missing
@@ -233,7 +239,6 @@ EOF
 fi
 
 # Apply wallpaper to all desktops
-echo -e "${COLOR_GREEN}Applying wallpaper to all desktops...${COLOR_RESET}"
 osascript <<EOF
 tell application "System Events"
   tell every desktop
@@ -241,6 +246,19 @@ tell application "System Events"
   end tell
 end tell
 EOF
+
+print_separator
+
+# Disable macOS Tips daemon + mark welcome tips as seen
+# (prevents the recurring "Tips" nudges/notifications)
+echo -e "${COLOR_GREEN}Disabling macOS Tips popups...${COLOR_RESET}"
+USER_UID="$(id -u)"
+launchctl disable "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
+launchctl bootout "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
+defaults write com.apple.tipsd TPSWaitingToShowWelcomeNotification -int 0 || true
+defaults write com.apple.tipsd TPSWelcomeNotificationReminderState -int 1 || true
+defaults write com.apple.tipsd TPSWelcomeNotificationViewedVersion -int "$(sw_vers -productVersion | cut -d. -f1)" || true
+killall tipsd 2>/dev/null || true
 
 # Preflight: avoid nix-darwin activation abort on existing /etc/zshenv
 if [ -f /etc/zshenv ] && [ ! -f /etc/zshenv.before-nix-darwin ]; then
@@ -268,22 +286,11 @@ print_separator
 echo -e "${COLOR_GREEN}Restarting Dock to apply shortcut changes...${COLOR_RESET}"
 killall Dock || true
 
-# Disable macOS Tips daemon + mark welcome tips as seen
-# (prevents the recurring "Tips" nudges/notifications)
-echo -e "${COLOR_GREEN}Disabling macOS Tips popups...${COLOR_RESET}"
-USER_UID="$(id -u)"
-launchctl disable "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
-launchctl bootout "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
-defaults write com.apple.tipsd TPSWaitingToShowWelcomeNotification -int 0 || true
-defaults write com.apple.tipsd TPSWelcomeNotificationReminderState -int 1 || true
-defaults write com.apple.tipsd TPSWelcomeNotificationViewedVersion -int "$(sw_vers -productVersion | cut -d. -f1)" || true
-killall tipsd 2>/dev/null || true
-
 print_separator
 if [ "$DARWIN_SWITCH_EXIT" -eq 0 ]; then
-  echo -e "${COLOR_GREEN}✅ Build complete. Renix setup finished successfully.${COLOR_RESET}"
+  echo -e "${COLOR_GREEN}✅ Build complete. 🚀 ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_GREEN} setup finished successfully! 🌌${COLOR_RESET}"
 else
-  echo -e "${COLOR_YELLOW}⚠️ Build complete with issues. darwin-rebuild exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
+  echo -e "${COLOR_YELLOW}⚠️ Build complete with issues for 🚀 ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_YELLOW}. darwin-rebuild exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
 fi
 
 if [ "${TERM_PROGRAM:-}" = "Apple_Terminal" ]; then
