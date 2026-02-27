@@ -58,10 +58,10 @@ echo -e "🚀 Welcome to ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COL
 echo ""
 
 # Preflight: required temporary key for dotfiles clone
-TEMP_GITEA_KEY="$HOME/gitea_masiero_doug"
-if [ ! -f "$TEMP_GITEA_KEY" ]; then
-  echo -e "${COLOR_YELLOW}Error:${COLOR_RESET} required temporary key ${COLOR_CYAN}$TEMP_GITEA_KEY${COLOR_RESET} not found."
-  echo -e "Place ${COLOR_CYAN}gitea_masiero_doug${COLOR_RESET} in your home directory and re-run setup."
+TEMP_GIT_KEY="$HOME/gtk"
+if [ ! -f "$TEMP_GIT_KEY" ]; then
+  echo -e "${COLOR_YELLOW}Error:${COLOR_RESET} required temporary key ${COLOR_CYAN}$TEMP_GIT_KEY${COLOR_RESET} not found."
+  echo -e "Place ${COLOR_CYAN}gtk${COLOR_RESET} in your home directory and re-run setup."
   exit 1
 fi
 
@@ -165,14 +165,14 @@ print_separator
 DOTFILES_DIR="$HOME/dotfiles"
 DOTFILES_REPO="ssh://git@gitea.masiero.internal:2222/masiero/dotfiles.git"
 
-chmod 600 "$TEMP_GITEA_KEY" || true
+chmod 600 "$TEMP_GIT_KEY" || true
 echo -e "${COLOR_GREEN}Cloning dotfiles repo to${COLOR_RESET} ${COLOR_CYAN}$DOTFILES_DIR${COLOR_RESET} ..."
 if [ -d "$DOTFILES_DIR/.git" ]; then
   echo -e "${COLOR_DIM}$DOTFILES_DIR already exists; pulling latest changes...${COLOR_RESET}"
-  GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+  GIT_SSH_COMMAND="ssh -i $TEMP_GIT_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
     git -C "$DOTFILES_DIR" pull --ff-only
 else
-  GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+  GIT_SSH_COMMAND="ssh -i $TEMP_GIT_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
     git clone "$DOTFILES_REPO" "$DOTFILES_DIR"
 fi
 
@@ -218,15 +218,15 @@ mkdir -p "$SMANAGER_PARENT_DIR"
 echo -e "${COLOR_GREEN}Cloning smanager repo to${COLOR_RESET} ${COLOR_CYAN}$SMANAGER_DIR${COLOR_RESET} ..."
 if [ -d "$SMANAGER_DIR/.git" ]; then
   echo -e "${COLOR_DIM}$SMANAGER_DIR already exists; pulling latest changes...${COLOR_RESET}"
-  GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+  GIT_SSH_COMMAND="ssh -i $TEMP_GIT_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
     git -C "$SMANAGER_DIR" pull --ff-only
 else
-  GIT_SSH_COMMAND="ssh -i $TEMP_GITEA_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
+  GIT_SSH_COMMAND="ssh -i $TEMP_GIT_KEY -o IdentitiesOnly=yes -o StrictHostKeyChecking=accept-new" \
     git clone "$SMANAGER_REPO" "$SMANAGER_DIR"
 fi
 
-echo -e "${COLOR_GREEN}Deleting temporary key${COLOR_RESET} ${COLOR_CYAN}$TEMP_GITEA_KEY${COLOR_RESET} ..."
-rm -f "$TEMP_GITEA_KEY"
+echo -e "${COLOR_GREEN}Deleting temporary key${COLOR_RESET} ${COLOR_CYAN}$TEMP_GIT_KEY${COLOR_RESET} ..."
+rm -f "$TEMP_GIT_KEY"
 
 print_separator
 
