@@ -193,6 +193,18 @@
                     ".config/ghostty" = {
                       source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/ghostty";
                     };
+                    "Library/KeyBindings/DefaultKeyBinding.dict".text = ''
+                      {
+                        "\UF729"  = "moveToBeginningOfLine:";
+                        "\UF72B"  = "moveToEndOfLine:";
+                        "$\UF729" = "moveToBeginningOfLineAndModifySelection:";
+                        "$\UF72B" = "moveToEndOfLineAndModifySelection:";
+                        "^\UF729" = "moveToBeginningOfDocument:";
+                        "^\UF72B" = "moveToEndOfDocument:";
+                        "$^\UF729" = "moveToBeginningOfDocumentAndModifySelection:";
+                        "$^\UF72B" = "moveToEndOfDocumentAndModifySelection:";
+                      }
+                    '';
                   };
 
                   home.activation.fixSshPerms = lib.hm.dag.entryAfter [ "writeBoundary" ] ''

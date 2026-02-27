@@ -13,6 +13,8 @@ print_separator() {
   echo -e "${COLOR_DIM}----------------------------------------${COLOR_RESET}"
 }
 
+clear
+
 # Cool Nix-themed ASCII art and startup prompt
 echo ""
 _art_row=0
@@ -24,7 +26,7 @@ while IFS= read -r _line; do
   fi
   _art_row=$((_art_row + 1))
 done <<'EOF'
-,iii         ,,,,,.     ,::.
+              ,iii         ,,,,,.     ,::.
               ttttti        ,::::;   .;;;;;
               ,ttttti        .::;;; ,;;;;;,
                .ttttt1        .;;;;;;;;;;.
@@ -69,20 +71,21 @@ fi
 echo -e "${COLOR_MAGENTA}This script will:${COLOR_RESET}"
 echo "1. Install Determinate Nix to manage packages and configurations."
 echo "2. Install Homebrew for additional package management."
-echo "3. Set macOS appearance to Dark Mode."
-echo "4. Create a solid-color wallpaper file (#1C1C1E) in ~/dotfiles/wallpapers."
-echo "5. Apply that wallpaper to all desktops."
-echo "6. Clone the Nix configuration repo from GitHub to ~/nix."
-echo "7. Switch that repo's origin remote to SSH."
-echo "8. Install and switch to the Nix Darwin configuration from ~/nix."
-echo "9. Disable macOS Tips notifications/popups."
+echo "3. Clone the Nix configuration repo from GitHub to ~/nix."
+echo "4. Switch that repo's origin remote to SSH."
+echo "5. Clone required private repos (dotfiles + smanager)."
+echo "6. Install and switch to the Nix Darwin configuration from ~/nix."
+echo "7. Disable macOS Tips notifications/popups."
+echo "8. Set the local user profile picture from repo assets."
+echo "9. Restart Dock."
+echo "10. Set macOS appearance to Dark Mode and apply wallpaper."
 echo ""
 
 # Prompt user to continue or exit
-echo -e "${COLOR_MAGENTA}Do you want to continue with the setup?${COLOR_RESET} ${COLOR_DIM}(y/N)${COLOR_RESET}"
+echo -e "${COLOR_MAGENTA}Do you want to continue with the setup?${COLOR_RESET} ${COLOR_DIM}(Y/n)${COLOR_RESET}"
 printf "%b" "${COLOR_CYAN}Enter your choice:${COLOR_RESET} "
 read choice </dev/tty
-if [[ ! "$choice" =~ ^[Yy]$ ]]; then
+if [[ -n "$choice" && ! "$choice" =~ ^[Yy]$ ]]; then
   echo -e "${COLOR_YELLOW}Setup aborted. Exiting...${COLOR_RESET}"
   exit 0
 fi
@@ -148,19 +151,6 @@ fi
 
 print_separator
 
-# Apply local user profile photo from nix repo asset
-USER_PHOTO_FILE="$REPO_DIR/assets/user-photo.jpg"
-echo -e "${COLOR_GREEN}Applying user profile photo...${COLOR_RESET}"
-if [ -f "$USER_PHOTO_FILE" ]; then
-  sudo /usr/bin/dscl . -delete /Users/doug dsAttrTypeNative:AvatarRepresentation >/dev/null 2>&1 || true
-  sudo /usr/bin/dscl . -delete /Users/doug JPEGPhoto >/dev/null 2>&1 || true
-  sudo /usr/bin/dscl . -create /Users/doug Picture "$USER_PHOTO_FILE" >/dev/null 2>&1 || true
-else
-  echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} user profile photo not found at ${COLOR_CYAN}$USER_PHOTO_FILE${COLOR_RESET}; skipping."
-fi
-
-print_separator
-
 # Clone dotfiles repo using temporary Gitea key from ~/
 DOTFILES_DIR="$HOME/dotfiles"
 DOTFILES_REPO="ssh://git@gitea.masiero.internal:2222/masiero/dotfiles.git"
@@ -199,6 +189,8 @@ else
   echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} $DOTFILES_DIR/ssh not found; skipping ~/.ssh symlink."
 fi
 
+print_separator
+
 # Ensure SSH key permissions are locked down after clone/symlink
 if [ -e "$HOME/.ssh" ]; then
   echo -e "${COLOR_GREEN}Fixing SSH permissions in ~/.ssh ...${COLOR_RESET}"
@@ -225,8 +217,61 @@ else
     git clone "$SMANAGER_REPO" "$SMANAGER_DIR"
 fi
 
+print_separator
 echo -e "${COLOR_GREEN}Deleting temporary key${COLOR_RESET} ${COLOR_CYAN}$TEMP_GIT_KEY${COLOR_RESET} ..."
 rm -f "$TEMP_GIT_KEY"
+
+print_separator
+
+# Preflight: avoid nix-darwin activation abort on existing /etc/zshenv
+if [ -f /etc/zshenv ] && [ ! -f /etc/zshenv.before-nix-darwin ]; then
+  echo -e "${COLOR_YELLOW}Backing up existing /etc/zshenv to /etc/zshenv.before-nix-darwin ...${COLOR_RESET}"
+  sudo mv /etc/zshenv /etc/zshenv.before-nix-darwin
+fi
+
+# Install Nix Darwin from local flake
+# Capture exit code but always continue to post-setup tasks.
+echo -e "${COLOR_GREEN}Installing Nix Darwin from${COLOR_RESET} ${COLOR_CYAN}$REPO_DIR${COLOR_RESET} ..."
+echo -e "${COLOR_GREEN}Starting Home Manager activation${COLOR_RESET}"
+if sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#thismac"; then
+  DARWIN_SWITCH_EXIT=0
+else
+  DARWIN_SWITCH_EXIT=$?
+fi
+
+echo -e "${COLOR_CYAN}darwin-rebuild finished with exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
+print_separator
+
+# Disable macOS Tips daemon + mark welcome tips as seen
+# (prevents the recurring "Tips" nudges/notifications)
+echo -e "${COLOR_GREEN}Disabling macOS Tips popups...${COLOR_RESET}"
+USER_UID="$(id -u)"
+launchctl disable "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
+launchctl bootout "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
+defaults write com.apple.tipsd TPSWaitingToShowWelcomeNotification -int 0 || true
+defaults write com.apple.tipsd TPSWelcomeNotificationReminderState -int 1 || true
+defaults write com.apple.tipsd TPSWelcomeNotificationViewedVersion -int "$(sw_vers -productVersion | cut -d. -f1)" || true
+killall tipsd 2>/dev/null || true
+
+print_separator
+
+# Apply local user profile photo from nix repo asset
+USER_PHOTO_FILE="$REPO_DIR/assets/user-photo.jpg"
+echo -e "${COLOR_GREEN}Applying user profile photo...${COLOR_RESET}"
+if [ -f "$USER_PHOTO_FILE" ]; then
+  sudo /usr/bin/dscl . -delete /Users/doug dsAttrTypeNative:AvatarRepresentation >/dev/null 2>&1 || true
+  sudo /usr/bin/dscl . -delete /Users/doug JPEGPhoto >/dev/null 2>&1 || true
+  sudo /usr/bin/dscl . -create /Users/doug Picture "$USER_PHOTO_FILE" >/dev/null 2>&1 || true
+else
+  echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} user profile photo not found at ${COLOR_CYAN}$USER_PHOTO_FILE${COLOR_RESET}; skipping."
+fi
+
+print_separator
+
+# Restart Dock so updated shortcuts are applied
+# Must run after darwin-rebuild.
+echo -e "${COLOR_GREEN}Restarting Dock to apply shortcut changes...${COLOR_RESET}"
+killall Dock || true
 
 print_separator
 
@@ -257,45 +302,6 @@ tell application "System Events"
   end tell
 end tell
 EOF
-
-print_separator
-
-# Disable macOS Tips daemon + mark welcome tips as seen
-# (prevents the recurring "Tips" nudges/notifications)
-echo -e "${COLOR_GREEN}Disabling macOS Tips popups...${COLOR_RESET}"
-USER_UID="$(id -u)"
-launchctl disable "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
-launchctl bootout "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
-defaults write com.apple.tipsd TPSWaitingToShowWelcomeNotification -int 0 || true
-defaults write com.apple.tipsd TPSWelcomeNotificationReminderState -int 1 || true
-defaults write com.apple.tipsd TPSWelcomeNotificationViewedVersion -int "$(sw_vers -productVersion | cut -d. -f1)" || true
-killall tipsd 2>/dev/null || true
-
-# Preflight: avoid nix-darwin activation abort on existing /etc/zshenv
-if [ -f /etc/zshenv ] && [ ! -f /etc/zshenv.before-nix-darwin ]; then
-  echo -e "${COLOR_YELLOW}Backing up existing /etc/zshenv to /etc/zshenv.before-nix-darwin ...${COLOR_RESET}"
-  sudo mv /etc/zshenv /etc/zshenv.before-nix-darwin
-fi
-
-print_separator
-
-# Install Nix Darwin from local flake
-# Capture exit code but always continue to post-setup tasks.
-echo -e "${COLOR_GREEN}Installing Nix Darwin from${COLOR_RESET} ${COLOR_CYAN}$REPO_DIR${COLOR_RESET} ..."
-echo -e "${COLOR_GREEN}Starting Home Manager activation${COLOR_RESET}"
-if sudo -H nix run nix-darwin/master#darwin-rebuild -- switch --flake "$REPO_DIR#thismac"; then
-  DARWIN_SWITCH_EXIT=0
-else
-  DARWIN_SWITCH_EXIT=$?
-fi
-
-echo -e "${COLOR_CYAN}darwin-rebuild finished with exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
-print_separator
-
-# Restart Dock so updated shortcuts are applied
-# Must run after darwin-rebuild.
-echo -e "${COLOR_GREEN}Restarting Dock to apply shortcut changes...${COLOR_RESET}"
-killall Dock || true
 
 print_separator
 if [ "$DARWIN_SWITCH_EXIT" -eq 0 ]; then
