@@ -68,7 +68,7 @@ if [ ! -f "$TEMP_GIT_KEY" ]; then
 fi
 
 # Explanation of what the script will do
-echo -e "${COLOR_MAGENTA}This script will:${COLOR_RESET}"
+echo -e "${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_RESET} bootstrap will:${COLOR_RESET}"
 echo "1. Optionally update this Mac's hostname."
 echo "2. Install Determinate Nix and activate it."
 echo "3. Install Homebrew (including Xcode Command Line Tools if needed) and activate it."
@@ -85,7 +85,7 @@ echo "13. Set macOS to Dark Mode and apply the wallpaper."
 echo ""
 
 # Prompt user to continue or exit
-echo -e "${COLOR_MAGENTA}Do you want to continue with the system bootstrap?${COLOR_RESET} ${COLOR_DIM}(Y/n)${COLOR_RESET}"
+echo -e "${COLOR_MAGENTA}Do you want to continue with the ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_RESET} system bootstrap?${COLOR_RESET} ${COLOR_DIM}(Y/n)${COLOR_RESET}"
 printf "%b" "${COLOR_CYAN}Enter your choice:${COLOR_RESET} "
 read choice </dev/tty
 if [[ -n "$choice" && ! "$choice" =~ ^[Yy]$ ]]; then
@@ -240,7 +240,7 @@ else
 fi
 
 print_separator
-echo -e "${COLOR_GREEN}Deleting temporary key${COLOR_RESET} ${COLOR_CYAN}$TEMP_GIT_KEY${COLOR_RESET} ..."
+echo -e "${COLOR_GREEN}Git clones have completed. ${COLOR_RESET}${COLOR_YELLOW}Deleting temporary key${COLOR_RESET} ${COLOR_CYAN}$TEMP_GIT_KEY${COLOR_RESET} ..."
 rm -f "$TEMP_GIT_KEY"
 
 print_separator
