@@ -123,7 +123,7 @@ curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix 
 
 # Activate Determinate Nix (Current shell)
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
-echo -e "Determinate Nix is now activated in current shell."
+echo -e " ${COLOR_GREEN}INFO${COLOR_RESET} Determinate Nix is now activated in current shell."
 
 print_separator
 
@@ -131,11 +131,9 @@ print_separator
 echo -e "${COLOR_GREEN}Installing Homebrew & Xcode Command Line Tools...${COLOR_RESET}"
 NONINTERACTIVE=1 CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
 
-print_separator
-
 # Activate Homebrew (Current shell)
-echo -e "${COLOR_GREEN}Activating Homebrew...${COLOR_RESET}"
 eval "$(/opt/homebrew/bin/brew shellenv)"
+echo -e "${COLOR_NIX_BLUE_LIGHT}==>${COLOR_RESET} Homebrew is now in path and ready for use."
 
 print_separator
 
@@ -173,8 +171,6 @@ else
     git clone "$DOTFILES_REPO" "$DOTFILES_DIR"
 fi
 
-print_separator
-
 # Symlink ~/.ssh -> ~/dotfiles/ssh after dotfiles clone completes
 if [ -d "$DOTFILES_DIR/ssh" ]; then
   if [ -e "$HOME/.ssh" ] && [ ! -L "$HOME/.ssh" ]; then
@@ -198,11 +194,9 @@ else
   echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} $DOTFILES_DIR/ssh not found; skipping ~/.ssh symlink."
 fi
 
-print_separator
-
 # Ensure SSH key permissions are locked down after clone/symlink
 if [ -e "$HOME/.ssh" ]; then
-  echo -e "${COLOR_GREEN}Fixing SSH permissions in ~/.ssh ...${COLOR_RESET}"
+  echo -e "Adjusting SSH permissions in ~/.ssh ..."
   chmod 700 "$HOME/.ssh" || true
   find -L "$HOME/.ssh" -type f ! -name "*.pub" -exec chmod 600 {} \; || true
   find -L "$HOME/.ssh" -type f -name "*.pub" -exec chmod 644 {} \; || true
@@ -335,9 +329,9 @@ EOF
 
 print_separator
 if [ "$DARWIN_SWITCH_EXIT" -eq 0 ]; then
-  echo -e "${COLOR_GREEN}✅ Build complete. 🚀 ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_GREEN} setup finished successfully! 🌌${COLOR_RESET}"
+  echo -e "${COLOR_GREEN}✅ Bootstrap complete. 🚀 Your system has ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_GREEN}ed successfully! 🌌${COLOR_RESET}"
 else
-  echo -e "${COLOR_YELLOW}⚠️ Build complete with issues for 🚀 ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_YELLOW}. darwin-rebuild exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
+  echo -e "${COLOR_YELLOW}⚠️ Bootstrap completed with issues for 🚀 ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_YELLOW}. darwin-rebuild exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
 fi
 
 if [ "${TERM_PROGRAM:-}" = "Apple_Terminal" ]; then

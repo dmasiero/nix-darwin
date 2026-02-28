@@ -178,6 +178,9 @@
                     ".config/lazygit" = {
                       source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/lazygit";
                     };
+                    ".local/state/lazygit" = {
+                      source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/local/state/lazygit";
+                    };
                     ".pi" = {
                       source = config.lib.file.mkOutOfStoreSymlink "/Users/doug/dotfiles/pi";
                     };
