@@ -315,31 +315,59 @@ print_separator
 # Disable macOS Tips daemon + mark welcome tips as seen
 # (prevents recurring "Tips" nudges/notifications)
 echo -e "${COLOR_GREEN}Disabling macOS Tips popups...${COLOR_RESET}"
-USER_UID="$(id -u)"
-launchctl disable "gui/${USER_UID}/com.apple.tipsd" || true
+TIPS_USER="${SUDO_USER:-$USER}"
+TIPS_UID="$(id -u "$TIPS_USER" 2>/dev/null || true)"
 
-# On modern macOS with SIP enabled, launchctl bootout for some Apple services
-# can fail with "Operation not permitted" even for the logged-in user.
-# We still disable future launches, then force-stop currently running processes.
-launchctl bootout "gui/${USER_UID}/com.apple.tipsd" >/dev/null 2>&1 || true
+if [ -n "$TIPS_UID" ]; then
+  # IMPORTANT: target the logged-in user domain (not root), even when script is run via sudo.
+  /bin/launchctl asuser "$TIPS_UID" /bin/launchctl disable "gui/${TIPS_UID}/com.apple.tipsd" >/dev/null 2>&1 || true
 
-defaults write com.apple.tipsd TPSWaitingToShowWelcomeNotification -int 0 || true
-defaults write com.apple.tipsd TPSWelcomeNotificationReminderState -int 1 || true
-defaults write com.apple.tipsd TPSWelcomeNotificationViewedVersion -int "$(sw_vers -productVersion | cut -d. -f1)" || true
+  # On modern macOS with SIP enabled, bootout may fail with "Operation not permitted".
+  /bin/launchctl asuser "$TIPS_UID" /bin/launchctl bootout "gui/${TIPS_UID}/com.apple.tipsd" >/dev/null 2>&1 || true
 
-# TERM may be ignored by tipsd; use KILL as a reliable fallback.
-pkill -9 tipsd >/dev/null 2>&1 || true
-killall Tips >/dev/null 2>&1 || true
+  sudo -u "$TIPS_USER" /usr/bin/defaults write com.apple.tipsd TPSWaitingToShowWelcomeNotification -int 0 || true
+  sudo -u "$TIPS_USER" /usr/bin/defaults write com.apple.tipsd TPSWelcomeNotificationReminderState -int 1 || true
+  sudo -u "$TIPS_USER" /usr/bin/defaults write com.apple.tipsd TPSWelcomeNotificationViewedVersion -int "$(sw_vers -productVersion | cut -d. -f1)" || true
+
+  # TERM may be ignored by tipsd; use KILL as a reliable fallback.
+  /usr/bin/pkill -9 -u "$TIPS_UID" tipsd >/dev/null 2>&1 || true
+  /usr/bin/pkill -9 -u "$TIPS_UID" -f '/System/Applications/Tips.app' >/dev/null 2>&1 || true
+else
+  echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} could not resolve uid for ${COLOR_CYAN}$TIPS_USER${COLOR_RESET}; skipping Tips disable step."
+fi
 
 print_separator
 
 # Apply local user profile photo from nix repo asset
 USER_PHOTO_FILE="$REPO_DIR/assets/user-photo.jpg"
+TARGET_USER="${SUDO_USER:-$USER}"
+TARGET_UID="$(id -u "$TARGET_USER" 2>/dev/null || true)"
+SYSTEM_PHOTO_DIR="/Library/User Pictures/Custom"
+SYSTEM_PHOTO_FILE="$SYSTEM_PHOTO_DIR/${TARGET_USER}.jpg"
+LOGINWINDOW_CACHE_FILE="/Library/Caches/com.apple.user${TARGET_UID}picture"
+LOGINWINDOW_CACHE_PNG="${LOGINWINDOW_CACHE_FILE}.png"
+
 echo -e "${COLOR_GREEN}Applying user profile photo...${COLOR_RESET}"
 if [ -f "$USER_PHOTO_FILE" ]; then
-  sudo /usr/bin/dscl . -delete /Users/doug dsAttrTypeNative:AvatarRepresentation >/dev/null 2>&1 || true
-  sudo /usr/bin/dscl . -delete /Users/doug JPEGPhoto >/dev/null 2>&1 || true
-  sudo /usr/bin/dscl . -create /Users/doug Picture "$USER_PHOTO_FILE" >/dev/null 2>&1 || true
+  if [ -z "$TARGET_UID" ]; then
+    echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} could not resolve UID for ${COLOR_CYAN}$TARGET_USER${COLOR_RESET}; skipping profile photo update."
+  else
+    sudo mkdir -p "$SYSTEM_PHOTO_DIR"
+    sudo /usr/bin/install -m 0644 "$USER_PHOTO_FILE" "$SYSTEM_PHOTO_FILE"
+
+    sudo /usr/bin/dscl . -delete "/Users/$TARGET_USER" dsAttrTypeNative:AvatarRepresentation >/dev/null 2>&1 || true
+    sudo /usr/bin/dscl . -delete "/Users/$TARGET_USER" JPEGPhoto >/dev/null 2>&1 || true
+    sudo /usr/bin/dscl . -create "/Users/$TARGET_USER" Picture "$SYSTEM_PHOTO_FILE" >/dev/null 2>&1 || true
+
+    # Refresh login/lock-screen caches used by macOS.
+    sudo /bin/cp -f "$SYSTEM_PHOTO_FILE" "$LOGINWINDOW_CACHE_FILE" >/dev/null 2>&1 || true
+    sudo /usr/bin/sips -s format png "$SYSTEM_PHOTO_FILE" --out "$LOGINWINDOW_CACHE_PNG" >/dev/null 2>&1 || true
+    sudo /usr/sbin/chown root:wheel "$SYSTEM_PHOTO_FILE" "$LOGINWINDOW_CACHE_FILE" "$LOGINWINDOW_CACHE_PNG" >/dev/null 2>&1 || true
+    sudo /bin/chmod 0644 "$SYSTEM_PHOTO_FILE" "$LOGINWINDOW_CACHE_FILE" "$LOGINWINDOW_CACHE_PNG" >/dev/null 2>&1 || true
+
+    # Flush directory service cache so loginwindow picks up the new image.
+    sudo /usr/bin/killall opendirectoryd >/dev/null 2>&1 || true
+  fi
 else
   echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} user profile photo not found at ${COLOR_CYAN}$USER_PHOTO_FILE${COLOR_RESET}; skipping."
 fi
