@@ -5,6 +5,9 @@ COLOR_CYAN="\033[1;36m"
 COLOR_YELLOW="\033[1;33m"
 COLOR_MAGENTA="\033[1;35m"
 COLOR_GREEN="\033[1;32m"
+COLOR_RED="\033[1;31m"
+COLOR_BLUE="\033[0;34m"
+COLOR_WHITE_BOLD="\033[1;37m"
 COLOR_DIM="\033[2m"
 COLOR_NIX_BLUE_DARK="\033[38;2;82;120;195m"
 COLOR_NIX_BLUE_LIGHT="\033[38;2;126;180;230m"
@@ -20,10 +23,18 @@ echo ""
 _art_row=0
 while IFS= read -r _line; do
   if (( _art_row % 2 == 0 )); then
-    printf "%b%s%b\n" "$COLOR_NIX_BLUE_DARK" "$_line" "$COLOR_RESET"
+    _line_color="$COLOR_NIX_BLUE_DARK"
   else
-    printf "%b%s%b\n" "$COLOR_NIX_BLUE_LIGHT" "$_line" "$COLOR_RESET"
+    _line_color="$COLOR_NIX_BLUE_LIGHT"
   fi
+
+  if [[ "$_line" == *"[ r e n i x ]"* ]]; then
+    _styled_line="${_line//[[] r e n i x []]/[ ${COLOR_NIX_BLUE_DARK}r e${_line_color} ${COLOR_NIX_BLUE_LIGHT}n i x${_line_color} ]}"
+    printf "%b\n" "${_line_color}${_styled_line}${COLOR_RESET}"
+  else
+    printf "%b%s%b\n" "$_line_color" "$_line" "$COLOR_RESET"
+  fi
+
   _art_row=$((_art_row + 1))
 done <<'EOF'
               ,iii         ,,,,,.     ,::.
@@ -36,8 +47,8 @@ done <<'EOF'
         ,,,,,,,,,,,,,,,,,,,,,,,::, ;;;;;.     ;tt,
                ,;;;;;;              ;;;;;,   ;tttt,
               ,;;;;;:                ;;;;;: ;ttttt.
-             ,;;;,        R e N i x       ;;;;.ittttt.
-            ,;;;;.      [   ReNix   ]      .. ittttt,.....
+             ,;;;,                        ;;;;.ittttt.
+            ,;;;;.      [ r e n i x ]      .. ittttt,.....
    ,;;;;::::;;;;;---------------------------1tttttttttttt1
    ;;;;;::::;;;;.      macOS bootstrap      :tttttttttttttt
     ,,,,,::::;;         with nix-darwin      .ttt;;;;;;;;;
@@ -56,7 +67,7 @@ done <<'EOF'
 EOF
 
 echo ""
-echo -e "🚀 Welcome to ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_RESET} - macOS bootstrap with nix-darwin! 🌌"
+echo -e "🚀 Welcome to ${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET} - macOS bootstrap with nix-darwin! 🌌"
 echo ""
 
 # Preflight: required temporary key for dotfiles clone
@@ -68,12 +79,12 @@ if [ ! -f "$TEMP_GIT_KEY" ]; then
 fi
 
 # Explanation of what the script will do
-echo -e "${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_RESET} bootstrap will:${COLOR_RESET}"
+echo -e "${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET} bootstrap will:${COLOR_RESET}"
 echo "1. Optionally update this Mac's hostname."
 echo "2. Install Determinate Nix and activate it."
 echo "3. Install Homebrew (including Xcode Command Line Tools if needed) and activate it."
 echo "4. Clone ~/nix (or pull latest) and switch origin to SSH."
-echo "5. Preflight-check swo-cli version; optionally update package files."
+echo "5. Preflight-check custom package versions and optionally update package files."
 echo "6. Clone ~/dotfiles using the temporary key."
 echo "7. Link ~/.ssh to ~/dotfiles/ssh, adjust file permissions and load keys into Apple Keychain."
 echo "8. Clone ~/Dev/masiero/smanager using the temporary key."
@@ -86,8 +97,7 @@ echo "14. Set macOS to Dark Mode and apply the wallpaper."
 echo ""
 
 # Prompt user to continue or exit
-echo -e "${COLOR_MAGENTA}Do you want to continue with the ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_RESET} system bootstrap?${COLOR_RESET} ${COLOR_DIM}(Y/n)${COLOR_RESET}"
-printf "%b" "${COLOR_CYAN}Enter your choice:${COLOR_RESET} "
+printf "%b" "${COLOR_MAGENTA}Do you want to continue with a ${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET}${COLOR_MAGENTA} system bootstrap?${COLOR_RESET} [${COLOR_GREEN}Y${COLOR_RESET}/${COLOR_RED}n${COLOR_RESET}] "
 read choice </dev/tty
 if [[ -n "$choice" && ! "$choice" =~ ^[Yy]$ ]]; then
   echo -e "${COLOR_YELLOW}Setup aborted. Exiting...${COLOR_RESET}"
@@ -134,7 +144,7 @@ NONINTERACTIVE=1 CI=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.c
 
 # Activate Homebrew (Current shell)
 eval "$(/opt/homebrew/bin/brew shellenv)"
-echo -e "${COLOR_NIX_BLUE_LIGHT}==>${COLOR_RESET} Homebrew is now in path and ready for use."
+echo -e "${COLOR_BLUE}==>${COLOR_RESET} ${COLOR_WHITE_BOLD}Homebrew is now in path and ready for use.${COLOR_RESET}"
 
 print_separator
 
@@ -373,9 +383,12 @@ EOF
 
 print_separator
 if [ "$DARWIN_SWITCH_EXIT" -eq 0 ]; then
-  echo -e "${COLOR_GREEN}✅ Bootstrap complete. 🚀 Your system has ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_GREEN}ed successfully! 🌌${COLOR_RESET}"
+  echo -e "${COLOR_GREEN}✅ Bootstrap complete. 🚀 Your system has ${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_GREEN}ed successfully! 🌌${COLOR_RESET}"
+print_separator
+  echo -e "${COLOR_CYAN}ℹ️ Use ${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET}${COLOR_CYAN} for system rebuilds and optional package update checks. 🚀${COLOR_RESET}"
+  echo -e "${COLOR_DIM}Examples:${COLOR_RESET} ${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET}${COLOR_DIM}, ${COLOR_RESET}${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET} ${COLOR_CYAN}--dry${COLOR_RESET}${COLOR_DIM}, ${COLOR_RESET}${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET} ${COLOR_CYAN}--bare${COLOR_RESET}"
 else
-  echo -e "${COLOR_YELLOW}⚠️ Bootstrap completed with issues for 🚀 ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_YELLOW}. darwin-rebuild exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
+  echo -e "${COLOR_YELLOW}⚠️ Bootstrap completed with issues for 🚀 ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_YELLOW}. darwin-rebuild exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
 fi
 
 if [ "${TERM_PROGRAM:-}" = "Apple_Terminal" ]; then

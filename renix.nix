@@ -16,6 +16,9 @@ let
     RED="\033[31m"
     BLUE="\033[34m"
     WHITE="\033[97m"
+    NIX_BLUE_DARK="\033[38;2;82;120;195m"
+    NIX_BLUE_LIGHT="\033[38;2;126;180;230m"
+    RENIX_WORD="''${NIX_BLUE_DARK}Re''${NIX_BLUE_LIGHT}nix''${RESET}"
 
     show_help() {
       echo "Usage: renix [OPTION]..."
@@ -35,7 +38,7 @@ let
     show_banner() {
       echo ""
       echo -e "''${BLUE}══════════════════════════════════════════''${RESET}"
-      echo -e "  ''${BOLD}''${WHITE}Renixing System''${RESET}"
+      echo -e "  ''${BOLD}''${NIX_BLUE_DARK}Re''${NIX_BLUE_LIGHT}nix''${WHITE}ing System''${RESET}"
       echo -e "''${BLUE}══════════════════════════════════════════''${RESET}"
       echo ""
     }
@@ -46,7 +49,7 @@ let
       local frames=('⠋' '⠙' '⠹' '⠸' '⠼' '⠴' '⠦' '⠧' '⠇' '⠏')
       local i=0
       while kill -0 "$pid" 2>/dev/null; do
-        printf "\r''${CYAN}%s''${RESET} ''${DIM}%s''${RESET}" "''${frames[$i]}" "$msg"
+        printf "\r''${CYAN}%s''${RESET} %b" "''${frames[$i]}" "$msg"
         i=$(( (i + 1) % ''${#frames[@]} ))
         sleep 0.08
       done
@@ -77,7 +80,7 @@ let
 
     run_rebuild() {
       local action=$1
-      local msg="''${2:-Renixing system...}"
+      local msg="''${2:-''${RENIX_WORD}ing system...}"
       local out_pipe
       local rebuild_pid
       local spin_pid
@@ -212,7 +215,7 @@ let
     CUSTOM_UPDATER="$FLAKE_DIR/scripts/update-custom-builds.sh"
 
     REBUILD_ACTION="switch"
-    REBUILD_MSG="Renixing system..."
+    REBUILD_MSG="''${RENIX_WORD}ing system..."
     if [ "$DRY_RUN" = true ]; then
       REBUILD_ACTION="build"
       REBUILD_MSG="Building system..."
@@ -271,7 +274,7 @@ let
       echo -e "  ''${BOLD}''${WHITE}Applying Package Upgrades''${RESET}"
       echo -e "''${BLUE}══════════════════════════════════════════''${RESET}"
       echo ""
-      echo -e "''${DIM}Renixing again to apply upgraded packages...''${RESET}"
+      echo -e "''${DIM}''${RENIX_WORD}ing again to apply upgraded packages...''${RESET}"
       run_rebuild "switch" "Applying package upgrades..."
       echo -e "''${GREEN}✓''${RESET} Upgrade rebuild complete."
     fi
