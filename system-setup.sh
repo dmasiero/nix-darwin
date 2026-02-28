@@ -56,7 +56,7 @@ done <<'EOF'
 EOF
 
 echo ""
-echo -e "🚀 Welcome to ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_RESET}! 🌌"
+echo -e "🚀 Welcome to ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}Nix${COLOR_RESET} - macOS bootstrap with nix-darwin! 🌌"
 echo ""
 
 # Preflight: required temporary key for dotfiles clone
@@ -69,21 +69,23 @@ fi
 
 # Explanation of what the script will do
 echo -e "${COLOR_MAGENTA}This script will:${COLOR_RESET}"
-echo "1. Install Determinate Nix to manage packages and configurations."
-echo "2. Install Xcode Command Line Tools (required by Homebrew)."
-echo "3. Install Homebrew for additional package management."
-echo "4. Clone the Nix configuration repo from GitHub to ~/nix."
-echo "5. Switch that repo's origin remote to SSH."
-echo "6. Clone required private repos (dotfiles + smanager)."
-echo "7. Install and switch to the Nix Darwin configuration from ~/nix."
-echo "8. Disable macOS Tips notifications/popups."
-echo "9. Set the local user profile picture from repo assets."
-echo "10. Restart Dock."
-echo "11. Set macOS appearance to Dark Mode and apply wallpaper."
+echo "1. Optionally update this Mac's hostname."
+echo "2. Install Determinate Nix and activate it."
+echo "3. Install Homebrew (including Xcode Command Line Tools if needed) and activate it."
+echo "4. Clone ~/nix (or pull latest) and switch origin to SSH."
+echo "5. Clone ~/dotfiles using the temporary key."
+echo "6. Link ~/.ssh to ~/dotfiles/ssh, adjust file permissions and load keys into Apple Keychain."
+echo "7. Clone ~/Dev/masiero/smanager using the temporary key."
+echo "8. Back up /etc/zshenv for nix-darwin activation."
+echo "9. Run darwin-rebuild switch from ~/nix#thismac."
+echo "10. Disable macOS Tips popups/notifications."
+echo "11. Apply the local user profile photo from repo assets."
+echo "12. Restart Dock so shortcut changes take effect."
+echo "13. Set macOS to Dark Mode and apply the wallpaper."
 echo ""
 
 # Prompt user to continue or exit
-echo -e "${COLOR_MAGENTA}Do you want to continue with the setup?${COLOR_RESET} ${COLOR_DIM}(Y/n)${COLOR_RESET}"
+echo -e "${COLOR_MAGENTA}Do you want to continue with the system bootstrap?${COLOR_RESET} ${COLOR_DIM}(Y/n)${COLOR_RESET}"
 printf "%b" "${COLOR_CYAN}Enter your choice:${COLOR_RESET} "
 read choice </dev/tty
 if [[ -n "$choice" && ! "$choice" =~ ^[Yy]$ ]]; then
@@ -120,8 +122,8 @@ echo -e "${COLOR_GREEN}Installing Determinate Nix...${COLOR_RESET}"
 curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install --determinate --no-confirm
 
 # Activate Determinate Nix (Current shell)
-echo -e "${COLOR_GREEN}Activating Determinate Nix...${COLOR_RESET}"
 . /nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh
+echo -e "Determinate Nix is now activated in current shell."
 
 print_separator
 
