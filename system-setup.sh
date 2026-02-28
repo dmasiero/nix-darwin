@@ -226,7 +226,7 @@ if [ -d "$DOTFILES_DIR/ssh" ]; then
 
     echo -e "${COLOR_YELLOW}Temporary SSH backup created outside your home directory:${COLOR_RESET}"
     echo -e "  ${COLOR_CYAN}$SSH_BACKUP_PATH${COLOR_RESET}"
-    printf "%b" "${COLOR_MAGENTA}Keep this backup?${COLOR_RESET} ${COLOR_DIM}(y/N)${COLOR_RESET}: "
+    printf "%b" "${COLOR_MAGENTA}Keep this backup?${COLOR_RESET} [${COLOR_GREEN}y${COLOR_RESET}/${COLOR_RED}N${COLOR_RESET}]: "
     read KEEP_SSH_BACKUP </dev/tty
     if [[ ! "$KEEP_SSH_BACKUP" =~ ^[Yy]$ ]]; then
       echo -e "${COLOR_YELLOW}Deleting temporary SSH backup at${COLOR_RESET} ${COLOR_CYAN}$SSH_BACKUP_PATH${COLOR_RESET} ..."
@@ -286,6 +286,7 @@ else
 fi
 
 print_separator
+
 echo -e "${COLOR_GREEN}Git clones have completed. ${COLOR_RESET}${COLOR_YELLOW}Deleting temporary key${COLOR_RESET} ${COLOR_CYAN}$TEMP_GIT_KEY${COLOR_RESET} ..."
 rm -f "$TEMP_GIT_KEY"
 
@@ -381,12 +382,19 @@ killall Dock || true
 
 print_separator
 
-# Set macOS appearance to Dark Mode and apply wallpaper
+# Set macOS appearance to Dark Mode and apply wallpaper (without Apple Events/TCC prompts)
 echo -e "${COLOR_GREEN}Setting macOS appearance to Dark Mode and applying wallpaper...${COLOR_RESET}"
-osascript -e 'tell application "System Events" to tell appearance preferences to set dark mode to true' || true
+UI_USER="${SUDO_USER:-$USER}"
+UI_UID="$(id -u "$UI_USER" 2>/dev/null || true)"
+UI_HOME="$(/usr/bin/dscl . -read "/Users/$UI_USER" NFSHomeDirectory 2>/dev/null | /usr/bin/awk '{print $2}')"
+[ -z "$UI_HOME" ] && UI_HOME="$HOME"
+
+# Dark mode via user defaults (avoids System Events authorization).
+sudo -u "$UI_USER" /usr/bin/defaults write -g AppleInterfaceStyle -string Dark || true
+sudo -u "$UI_USER" /usr/bin/killall cfprefsd >/dev/null 2>&1 || true
 
 # Create wallpaper file (solid #1C1C1E) if missing
-WALLPAPER_FILE="$HOME/dotfiles/wallpapers/solid-1C1C1E.ppm"
+WALLPAPER_FILE="$UI_HOME/dotfiles/wallpapers/solid-1C1C1E.ppm"
 if [ -f "$WALLPAPER_FILE" ]; then
   echo -e "${COLOR_DIM}Wallpaper file already exists at $WALLPAPER_FILE; skipping create.${COLOR_RESET}"
 else
@@ -400,14 +408,46 @@ P3
 EOF
 fi
 
-# Apply wallpaper to all desktops
-osascript <<EOF
-tell application "System Events"
-  tell every desktop
-    set picture to "${WALLPAPER_FILE}"
-  end tell
-end tell
-EOF
+# Apply wallpaper via System Events (most reliable on recent macOS).
+# If that fails, fall back to legacy Dock DB update for older releases.
+WALLPAPER_INDEX="$UI_HOME/Library/Application Support/com.apple.wallpaper/Store/Index.plist"
+DOCK_DB="$UI_HOME/Library/Application Support/Dock/desktoppicture.db"
+WALLPAPER_SET=0
+
+if [ -n "$UI_UID" ]; then
+  sudo -u "$UI_USER" /bin/launchctl asuser "$UI_UID" /usr/bin/osascript \
+    -e 'tell application "System Events"' \
+    -e 'repeat with d in desktops' \
+    -e "set picture of d to POSIX file \"$WALLPAPER_FILE\"" \
+    -e 'end repeat' \
+    -e 'end tell' >/dev/null 2>&1 && WALLPAPER_SET=1 || true
+else
+  sudo -u "$UI_USER" /usr/bin/osascript \
+    -e 'tell application "System Events"' \
+    -e 'repeat with d in desktops' \
+    -e "set picture of d to POSIX file \"$WALLPAPER_FILE\"" \
+    -e 'end repeat' \
+    -e 'end tell' >/dev/null 2>&1 && WALLPAPER_SET=1 || true
+fi
+
+if [ "$WALLPAPER_SET" -ne 1 ]; then
+  if [ -f "$DOCK_DB" ]; then
+    # Legacy fallback for older macOS releases.
+    ESCAPED_WALLPAPER_FILE="${WALLPAPER_FILE//\'/\'\'}"
+    sudo -u "$UI_USER" /usr/bin/sqlite3 "$DOCK_DB" "UPDATE data SET value = '$ESCAPED_WALLPAPER_FILE';" >/dev/null 2>&1 || true
+  else
+    echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} wallpaper apply via System Events failed and no legacy Dock DB found (checked ${COLOR_CYAN}$DOCK_DB${COLOR_RESET})."
+  fi
+fi
+
+# Restart UI agents so changes are immediately applied.
+if [ -n "$UI_UID" ]; then
+  /bin/launchctl asuser "$UI_UID" /usr/bin/killall WallpaperAgent >/dev/null 2>&1 || true
+  /bin/launchctl asuser "$UI_UID" /usr/bin/killall Dock >/dev/null 2>&1 || true
+else
+  /usr/bin/killall WallpaperAgent >/dev/null 2>&1 || true
+  /usr/bin/killall Dock >/dev/null 2>&1 || true
+fi
 
 print_separator
 if [ "$DARWIN_SWITCH_EXIT" -eq 0 ]; then
