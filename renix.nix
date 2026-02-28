@@ -1,43 +1,11 @@
 { pkgs, ... }:
 
 let
-  customBuilds = import ./custom-builds.nix;
-  toField = value:
-    if builtins.isBool value then
-      (if value then "1" else "0")
-    else if value == null then
-      ""
-    else
-      builtins.toString value;
-  buildRow = build: builtins.concatStringsSep "|" [
-    build.id
-    (build.displayName or build.id)
-    build.attrName
-    build.source.type
-    (toField (build.source.owner or ""))
-    (toField (build.source.repo or ""))
-    (toField (build.source.package or ""))
-    (toField (build.source.distTag or ""))
-    (toField (build.source.stripV or false))
-    (toField (build.source.flake or ""))
-    (toField (build.source.versionPath or ""))
-    (toField (build.update.type or "manual"))
-    (toField (build.update.target or ""))
-    (toField (build.update.derivationFile or ""))
-    (toField (build.update.lockfile or ""))
-  ];
-  customBuildsTsv = builtins.concatStringsSep "\n" (map buildRow customBuilds);
-
   renix = pkgs.writeShellScriptBin "renix" ''
     set -euo pipefail
 
     FLAKE_DIR="''${RENIX_FLAKE_DIR:-/Users/doug/nix}"
     FLAKE_HOST="''${RENIX_FLAKE_HOST:-thismac}"
-
-    CUSTOM_BUILDS_TSV=$(cat <<'EOF'
-${customBuildsTsv}
-EOF
-)
 
     BOLD="\033[1m"
     DIM="\033[2m"
@@ -96,105 +64,20 @@ EOF
       fi
     }
 
-    get_configured_build_version() {
-      local attr_name=$1
-      nix eval --impure --raw --expr \
-        "(builtins.getFlake \"$FLAKE_DIR\").darwinConfigurations.\"$FLAKE_HOST\".pkgs.\"$attr_name\".version" \
-        2>/dev/null || echo "unknown"
-    }
-
-    get_latest_build_version() {
-      local source_type=$1
-      local owner=$2
-      local repo=$3
-      local package=$4
-      local dist_tag=$5
-      local strip_v=$6
-      local flake=$7
-      local version_path=$8
-
-      case "$source_type" in
-        flake-input)
-          nix eval --impure --raw --expr "(builtins.getFlake \"$flake\").$version_path" 2>/dev/null || echo "unknown"
-          ;;
-        npm)
-          local tag="$dist_tag"
-          [ -z "$tag" ] && tag="latest"
-          nix eval --impure --raw --expr \
-            "let p = builtins.fromJSON (builtins.readFile (builtins.fetchurl \"https://registry.npmjs.org/$package\")); in p.\"dist-tags\".\"$tag\" or \"unknown\"" \
-            2>/dev/null || echo "unknown"
-          ;;
-        github-release)
-          if [ "$strip_v" = "1" ]; then
-            nix eval --impure --raw --expr \
-              "let r = builtins.fromJSON (builtins.readFile (builtins.fetchurl \"https://api.github.com/repos/$owner/$repo/releases/latest\")); t = r.tag_name or \"\"; len = builtins.stringLength t; in if len > 1 && builtins.substring 0 1 t == \"v\" then builtins.substring 1 (len - 1) t else t" \
-              2>/dev/null || echo "unknown"
-          else
-            nix eval --impure --raw --expr \
-              "let r = builtins.fromJSON (builtins.readFile (builtins.fetchurl \"https://api.github.com/repos/$owner/$repo/releases/latest\")); in r.tag_name or \"unknown\"" \
-              2>/dev/null || echo "unknown"
-          fi
-          ;;
-        *)
-          echo "unknown"
-          ;;
-      esac
-    }
-
-    update_npm_package() {
-      local display_name=$1
-      local npm_package=$2
-      local derivation_file_rel=$3
-      local lockfile_rel=$4
-      local new_version=$5
-
-      local pkg_base
-      local tarball_url
-      local derivation_file
-      local lockfile
-      local tmpdir
-      local src_hash_nix32
-      local src_hash
-      local npm_deps_hash
-
-      pkg_base="''${npm_package##*/}"
-      tarball_url="https://registry.npmjs.org/$npm_package/-/$pkg_base-$new_version.tgz"
-      derivation_file="$FLAKE_DIR/$derivation_file_rel"
-      lockfile="$FLAKE_DIR/$lockfile_rel"
-
-      tmpdir=$(mktemp -d)
-      trap 'rm -rf "$tmpdir"' RETURN
-
-      echo -e "''${DIM}Updating $display_name package files...''${RESET}"
-
-      curl -fsSL -o "$tmpdir/package.tgz" "$tarball_url"
-
-      src_hash_nix32=$(nix-prefetch-url --type sha256 "$tarball_url" 2>/dev/null | tail -n1)
-      src_hash=$(nix hash convert --hash-algo sha256 --from nix32 --to sri "$src_hash_nix32")
-
-      tar -xzf "$tmpdir/package.tgz" -C "$tmpdir"
-      (
-        cd "$tmpdir/package"
-        nix shell nixpkgs#nodejs --command \
-          npm install --package-lock-only --ignore-scripts --no-audit --no-fund >/dev/null
-      )
-
-      cp "$tmpdir/package/package-lock.json" "$lockfile"
-      npm_deps_hash=$(nix run nixpkgs#prefetch-npm-deps -- "$lockfile" 2>/dev/null | tail -n1)
-
-      perl -i -pe 's|version = ".*";|version = "'"$new_version"'";|' "$derivation_file"
-      perl -i -pe 's|hash = "sha256-[^"]+";|hash = "'"$src_hash"'";|' "$derivation_file"
-      perl -i -pe 's|npmDepsHash = "sha256-[^"]+";|npmDepsHash = "'"$npm_deps_hash"'";|' "$derivation_file"
-
-      rm -rf "$tmpdir"
-      trap - RETURN
-
-      echo -e "''${GREEN}✓''${RESET} Updated $display_name to ''${GREEN}$new_version''${RESET}."
+    prompt_yes_default_yes() {
+      local prompt=$1
+      local answer=""
+      printf "%b" "$prompt"
+      if { read -r answer < /dev/tty; } 2>/dev/null; then
+        [[ -z "$answer" || "$answer" =~ ^[Yy]$ ]]
+      else
+        false
+      fi
     }
 
     run_rebuild() {
       local action=$1
-      local msg="''${2:-Rebuilding system...}"
+      local msg="''${2:-Renixing system...}"
       local out_pipe
       local rebuild_pid
       local spin_pid
@@ -203,11 +86,16 @@ EOF
       echo -e "''${DIM}Running:''${RESET} ''${CYAN}sudo -H nix run nix-darwin/master#darwin-rebuild -- $action --flake $FLAKE_DIR#$FLAKE_HOST --option warn-dirty false''${RESET}"
       echo ""
 
+      # Prompt for sudo before starting spinner so password prompt is clean.
+      if ! sudo -n true 2>/dev/null; then
+        sudo -v
+      fi
+
       out_pipe=$(mktemp -u)
       mkfifo "$out_pipe"
 
       (
-        sudo -H env NIX_CONFIG="warn-dirty = false" \
+        sudo -n -H env NIX_CONFIG="warn-dirty = false" \
           nix run nix-darwin/master#darwin-rebuild -- \
           "$action" --flake "$FLAKE_DIR#$FLAKE_HOST" --option warn-dirty false >"$out_pipe" 2>&1
       ) &
@@ -229,6 +117,63 @@ EOF
       rm -f "$out_pipe"
 
       return "$rebuild_status"
+    }
+
+    run_brew_maintenance() {
+      local out_pipe
+      local brew_pid
+      local spin_pid
+      local brew_status
+
+      if ! command -v brew >/dev/null 2>&1; then
+        echo -e "''${YELLOW}⚠''${RESET} Homebrew not found in PATH; skipping brew update/upgrade."
+        return 0
+      fi
+
+      if ! prompt_yes_default_yes "Update and upgrade Homebrew packages now? [''${GREEN}Y''${RESET}/''${RED}n''${RESET}] "; then
+        echo ""
+        echo -e "''${DIM}Skipping Homebrew update/upgrade.''${RESET}"
+        echo ""
+        return 0
+      fi
+
+      echo ""
+      echo -e "''${DIM}Running:''${RESET} ''${CYAN}brew update && brew upgrade''${RESET}"
+      echo ""
+
+      out_pipe=$(mktemp -u)
+      mkfifo "$out_pipe"
+
+      (
+        {
+          brew update
+          brew upgrade
+        } >"$out_pipe" 2>&1
+      ) &
+      brew_pid=$!
+
+      spin "$brew_pid" "Updating Homebrew packages..." &
+      spin_pid=$!
+
+      while IFS= read -r line || [ -n "$line" ]; do
+        printf "\r\033[2K\033[1A\r\033[2K%s\n\n" "$line"
+      done < "$out_pipe"
+
+      if wait "$brew_pid"; then
+        brew_status=0
+      else
+        brew_status=$?
+      fi
+      wait "$spin_pid" 2>/dev/null || true
+      rm -f "$out_pipe"
+
+      if [ "$brew_status" -eq 0 ]; then
+        echo -e "''${GREEN}✓''${RESET} Homebrew update/upgrade complete."
+      else
+        echo -e "''${YELLOW}⚠''${RESET} Homebrew update/upgrade failed (exit $brew_status). Continuing."
+      fi
+      echo ""
+      return 0
     }
 
     SKIP_BUILD_UPDATES=false
@@ -264,91 +209,61 @@ EOF
 
     show_banner
 
-    VERSION_FILE=""
-    VERSION_PID=""
-
-    if [ "$SKIP_BUILD_UPDATES" != true ]; then
-      VERSION_FILE=$(mktemp)
-      (
-        while IFS='|' read -r id display_name attr_name source_type owner repo package dist_tag strip_v flake version_path update_type update_target update_derivation_file update_lockfile; do
-          [ -z "$id" ] && continue
-          configured=$(get_configured_build_version "$attr_name")
-          latest=$(get_latest_build_version "$source_type" "$owner" "$repo" "$package" "$dist_tag" "$strip_v" "$flake" "$version_path")
-
-          printf "%s|%s|%s|%s|%s|%s|%s|%s|%s\n" \
-            "$id" "$display_name" "$update_type" "$update_target" "$package" "$update_derivation_file" "$update_lockfile" "$configured" "$latest"
-        done <<< "$CUSTOM_BUILDS_TSV" > "$VERSION_FILE"
-      ) &
-      VERSION_PID=$!
-    fi
+    CUSTOM_UPDATER="$FLAKE_DIR/scripts/update-custom-builds.sh"
 
     REBUILD_ACTION="switch"
-    REBUILD_MSG="Rebuilding system..."
+    REBUILD_MSG="Renixing system..."
     if [ "$DRY_RUN" = true ]; then
       REBUILD_ACTION="build"
       REBUILD_MSG="Building system..."
     fi
     run_rebuild "$REBUILD_ACTION" "$REBUILD_MSG"
 
+    if [ "$DRY_RUN" != true ] && [ "$BARE_MODE" != true ]; then
+      run_brew_maintenance
+    fi
+
     if [ "$SKIP_BUILD_UPDATES" = true ] || [ "$DRY_RUN" = true ] || [ "$BARE_MODE" = true ]; then
-      [ -n "$VERSION_PID" ] && wait "$VERSION_PID" 2>/dev/null || true
-      [ -n "$VERSION_FILE" ] && rm -f "$VERSION_FILE"
       exit 0
     fi
 
-    if [ -n "$VERSION_PID" ] && kill -0 "$VERSION_PID" 2>/dev/null; then
-      spin "$VERSION_PID" "Finalizing version checks..."
-    fi
-    [ -n "$VERSION_PID" ] && wait "$VERSION_PID" || true
-
     UPDATES_APPLIED=false
-    UPDATED_ITEMS=()
 
-    echo -e "''${DIM}Checking custom build versions...''${RESET}"
-    echo ""
+    if [ -f "$CUSTOM_UPDATER" ]; then
+      echo -e "''${DIM}Checking custom build versions...''${RESET}"
+      echo ""
 
-    if [ -n "$VERSION_FILE" ] && [ -s "$VERSION_FILE" ]; then
-      while IFS='|' read -r id display_name update_type update_target package update_derivation_file update_lockfile configured latest; do
-        [ -z "$id" ] && continue
-
-        if [ "$configured" = "$latest" ] && [ "$configured" != "unknown" ] && [ -n "$configured" ]; then
-          echo -e "''${GREEN}✓''${RESET} $display_name: current (''${CYAN}$configured''${RESET})"
-          continue
-        fi
-
-        if [ "$latest" = "unknown" ] || [ -z "$latest" ] || [ "$configured" = "unknown" ] || [ -z "$configured" ]; then
-          echo -e "''${YELLOW}⚠''${RESET} $display_name: unable to determine version status (current: ''${CYAN}$configured''${RESET}, latest: ''${CYAN}$latest''${RESET})"
-          continue
-        fi
-
-        echo -e "''${YELLOW}⚠''${RESET} $display_name upgrade available: ''${GREEN}$latest''${RESET} ''${DIM}(current: $configured)''${RESET}"
-
-        case "$update_type" in
-          npm-package)
+      if bash "$CUSTOM_UPDATER" --flake-dir "$FLAKE_DIR" --host "$FLAKE_HOST" --check-only; then
+        :
+      else
+        CHECK_EXIT=$?
+        if [ "$CHECK_EXIT" -eq 10 ]; then
+          echo ""
+          if prompt_yes "Apply available custom package updates now? [''${GREEN}y''${RESET}/''${RED}N''${RESET}] "; then
             echo ""
-            if prompt_yes "Upgrade $display_name? [''${GREEN}y''${RESET}/''${RED}N''${RESET}] "; then
-              echo ""
-              if [ -z "$package" ] || [ -z "$update_derivation_file" ] || [ -z "$update_lockfile" ]; then
-                echo -e "''${RED}✗''${RESET} Missing npm-package metadata for $display_name in custom-builds.nix"
-              else
-                update_npm_package "$display_name" "$package" "$update_derivation_file" "$update_lockfile" "$latest"
-                UPDATES_APPLIED=true
-                UPDATED_ITEMS+=("$display_name")
-              fi
-              echo ""
+            if bash "$CUSTOM_UPDATER" --flake-dir "$FLAKE_DIR" --host "$FLAKE_HOST" --apply --yes; then
+              :
             else
-              echo -e "''${DIM}Skipping $display_name upgrade.''${RESET}"
-              echo ""
+              APPLY_EXIT=$?
+              if [ "$APPLY_EXIT" -eq 20 ]; then
+                UPDATES_APPLIED=true
+              else
+                echo -e "''${YELLOW}⚠''${RESET} Custom updater exited with code $APPLY_EXIT; continuing."
+              fi
             fi
-            ;;
-          *)
-            echo -e "''${DIM}    manual update required in $update_target''${RESET}"
-            ;;
-        esac
-      done < "$VERSION_FILE"
+          else
+            echo -e "''${DIM}Skipping custom package updates.''${RESET}"
+            echo ""
+          fi
+        else
+          echo -e "''${YELLOW}⚠''${RESET} Custom update check failed (exit $CHECK_EXIT); continuing."
+          echo ""
+        fi
+      fi
+    else
+      echo -e "''${YELLOW}⚠''${RESET} Custom updater not found at $CUSTOM_UPDATER; skipping custom package update checks."
+      echo ""
     fi
-
-    rm -f "$VERSION_FILE"
 
     if [ "$UPDATES_APPLIED" = true ]; then
       echo ""
@@ -356,7 +271,7 @@ EOF
       echo -e "  ''${BOLD}''${WHITE}Applying Package Upgrades''${RESET}"
       echo -e "''${BLUE}══════════════════════════════════════════''${RESET}"
       echo ""
-      echo -e "''${DIM}Rebuilding again to apply upgraded packages...''${RESET}"
+      echo -e "''${DIM}Renixing again to apply upgraded packages...''${RESET}"
       run_rebuild "switch" "Applying package upgrades..."
       echo -e "''${GREEN}✓''${RESET} Upgrade rebuild complete."
     fi

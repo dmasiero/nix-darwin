@@ -62,7 +62,6 @@
             config.allowUnfree = true;
             overlays = [
               (final: prev: {
-                pi-coding-agent = prev.callPackage ./pi-coding-agent.nix { };
                 swo-cli = prev.callPackage ./swo-cli.nix { };
               })
             ];
@@ -99,8 +98,14 @@
 
           homebrew = {
             enable = true;
+            onActivation = {
+              cleanup = "uninstall";
+            };
             taps = [ "sst/tap" ];
-            brews = [ "sst/tap/opencode" ];
+            brews = [
+              "sst/tap/opencode"
+              "pi-coding-agent"
+            ];
             casks = [
               "ghostty"
               "helium-browser"
@@ -127,6 +132,7 @@
       darwinConfigurations."thismac" = nix-darwin.lib.darwinSystem {
         modules = [
           configuration
+          ./renix.nix
           home-manager.darwinModules.home-manager
           {
             home-manager = {
@@ -159,7 +165,6 @@
                       keychain
                       lazygit
                       mtr
-                      pi-coding-agent
                       python3
                       ripgrep
                       swo-cli

@@ -73,15 +73,16 @@ echo "1. Optionally update this Mac's hostname."
 echo "2. Install Determinate Nix and activate it."
 echo "3. Install Homebrew (including Xcode Command Line Tools if needed) and activate it."
 echo "4. Clone ~/nix (or pull latest) and switch origin to SSH."
-echo "5. Clone ~/dotfiles using the temporary key."
-echo "6. Link ~/.ssh to ~/dotfiles/ssh, adjust file permissions and load keys into Apple Keychain."
-echo "7. Clone ~/Dev/masiero/smanager using the temporary key."
-echo "8. Back up /etc/zshenv for nix-darwin activation."
-echo "9. Run darwin-rebuild switch from ~/nix#thismac."
-echo "10. Disable macOS Tips popups/notifications."
-echo "11. Apply the local user profile photo from repo assets."
-echo "12. Restart Dock so shortcut changes take effect."
-echo "13. Set macOS to Dark Mode and apply the wallpaper."
+echo "5. Preflight-check swo-cli version; optionally update package files."
+echo "6. Clone ~/dotfiles using the temporary key."
+echo "7. Link ~/.ssh to ~/dotfiles/ssh, adjust file permissions and load keys into Apple Keychain."
+echo "8. Clone ~/Dev/masiero/smanager using the temporary key."
+echo "9. Back up /etc/zshenv for nix-darwin activation."
+echo "10. Run darwin-rebuild switch from ~/nix#thismac."
+echo "11. Disable macOS Tips popups/notifications."
+echo "12. Apply the local user profile photo from repo assets."
+echo "13. Restart Dock so shortcut changes take effect."
+echo "14. Set macOS to Dark Mode and apply the wallpaper."
 echo ""
 
 # Prompt user to continue or exit
@@ -152,6 +153,41 @@ fi
 # After initial HTTPS clone, switch origin to SSH for normal day-to-day use
 if git -C "$REPO_DIR" remote get-url origin >/dev/null 2>&1; then
   git -C "$REPO_DIR" remote set-url origin git@github.com:dmasiero/nix-darwin.git || true
+fi
+
+print_separator
+
+# Early preflight for custom package updates used by this flake.
+CUSTOM_UPDATER="$REPO_DIR/scripts/update-custom-builds.sh"
+if [ -x "$CUSTOM_UPDATER" ]; then
+  echo -e "${COLOR_GREEN}Checking custom package versions (swo-cli)...${COLOR_RESET}"
+  if "$CUSTOM_UPDATER" --flake-dir "$REPO_DIR" --host "thismac" --check-only; then
+    echo -e "${COLOR_DIM}Custom package preflight is current.${COLOR_RESET}"
+  else
+    CUSTOM_CHECK_EXIT=$?
+    if [ "$CUSTOM_CHECK_EXIT" -eq 10 ]; then
+      printf "%b" "${COLOR_MAGENTA}Apply available custom package updates now?${COLOR_RESET} ${COLOR_DIM}(Y/n)${COLOR_RESET}: "
+      read APPLY_CUSTOM_UPDATES </dev/tty
+      if [[ -z "$APPLY_CUSTOM_UPDATES" || "$APPLY_CUSTOM_UPDATES" =~ ^[Yy]$ ]]; then
+        if "$CUSTOM_UPDATER" --flake-dir "$REPO_DIR" --host "thismac" --apply --yes; then
+          echo -e "${COLOR_GREEN}Custom package preflight updates complete.${COLOR_RESET}"
+        else
+          UPDATE_EXIT=$?
+          if [ "$UPDATE_EXIT" -eq 20 ]; then
+            echo -e "${COLOR_GREEN}Custom package updates were applied.${COLOR_RESET}"
+          else
+            echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} custom package updater exited with code ${COLOR_CYAN}$UPDATE_EXIT${COLOR_RESET}; continuing bootstrap."
+          fi
+        fi
+      else
+        echo -e "${COLOR_DIM}Skipping custom package preflight updates.${COLOR_RESET}"
+      fi
+    else
+      echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} custom package preflight check exited with code ${COLOR_CYAN}$CUSTOM_CHECK_EXIT${COLOR_RESET}; continuing bootstrap."
+    fi
+  fi
+else
+  echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} custom package updater not found at ${COLOR_CYAN}$CUSTOM_UPDATER${COLOR_RESET}; continuing bootstrap."
 fi
 
 print_separator
@@ -267,15 +303,23 @@ echo -e "${COLOR_CYAN}darwin-rebuild finished with exit code:${COLOR_RESET} ${CO
 print_separator
 
 # Disable macOS Tips daemon + mark welcome tips as seen
-# (prevents the recurring "Tips" nudges/notifications)
+# (prevents recurring "Tips" nudges/notifications)
 echo -e "${COLOR_GREEN}Disabling macOS Tips popups...${COLOR_RESET}"
 USER_UID="$(id -u)"
-launchctl disable "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
-launchctl bootout "gui/${USER_UID}/com.apple.tipsd" 2>/dev/null || true
+launchctl disable "gui/${USER_UID}/com.apple.tipsd" || true
+
+# On modern macOS with SIP enabled, launchctl bootout for some Apple services
+# can fail with "Operation not permitted" even for the logged-in user.
+# We still disable future launches, then force-stop currently running processes.
+launchctl bootout "gui/${USER_UID}/com.apple.tipsd" >/dev/null 2>&1 || true
+
 defaults write com.apple.tipsd TPSWaitingToShowWelcomeNotification -int 0 || true
 defaults write com.apple.tipsd TPSWelcomeNotificationReminderState -int 1 || true
 defaults write com.apple.tipsd TPSWelcomeNotificationViewedVersion -int "$(sw_vers -productVersion | cut -d. -f1)" || true
-killall tipsd 2>/dev/null || true
+
+# TERM may be ignored by tipsd; use KILL as a reliable fallback.
+pkill -9 tipsd >/dev/null 2>&1 || true
+killall Tips >/dev/null 2>&1 || true
 
 print_separator
 
