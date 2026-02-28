@@ -76,7 +76,6 @@
           };
 
           programs.fish.enable = true;
-          programs.zsh.enable = true;
 
           nix = {
             enable = false;
@@ -226,15 +225,6 @@
                       find "$SSH_DIR" -type f -name "*.pub" -exec chmod 644 {} \; || true
                     fi
                   '';
-
-                  programs.zsh = {
-                    enable = true;
-                    initContent = ''
-                      if [[ -o interactive ]] && command -v fish >/dev/null 2>&1; then
-                        exec fish -l
-                      fi
-                    '';
-                  };
 
                   programs.fish = {
                     enable = true;
