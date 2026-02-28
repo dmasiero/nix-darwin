@@ -311,6 +311,17 @@ else
 fi
 
 echo -e "${COLOR_CYAN}darwin-rebuild finished with exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
+
+print_separator
+
+# Ensure default login shell is fish from nix profile
+echo -e "${COLOR_GREEN}Setting default shell to fish...${COLOR_RESET}"
+if chsh -s /run/current-system/sw/bin/fish; then
+  echo -e "Default shell set to ${COLOR_CYAN}/run/current-system/sw/bin/fish${COLOR_RESET}"
+else
+  echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} failed to set default shell to fish. You can run manually: ${COLOR_CYAN}chsh -s /run/current-system/sw/bin/fish${COLOR_RESET}"
+fi
+
 print_separator
 
 # Disable macOS Tips daemon + mark welcome tips as seen
@@ -409,10 +420,11 @@ end tell
 EOF
 
 print_separator
+
 if [ "$DARWIN_SWITCH_EXIT" -eq 0 ]; then
   echo -e "${COLOR_GREEN}✅ Bootstrap complete. 🚀 Your system has ${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_GREEN}ed successfully! 🌌${COLOR_RESET}"
 print_separator
-  echo -e "${COLOR_CYAN}ℹ️ Use ${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET}${COLOR_CYAN} for system rebuilds and optional package update checks. 🚀${COLOR_RESET}"
+  echo -e "ℹ️${COLOR_CYAN} Use ${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET}${COLOR_CYAN} for system rebuilds and optional package update checks. 🚀${COLOR_RESET}"
   echo -e "${COLOR_DIM}Examples:${COLOR_RESET} ${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET}${COLOR_DIM}, ${COLOR_RESET}${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET} ${COLOR_CYAN}--dry${COLOR_RESET}${COLOR_DIM}, ${COLOR_RESET}${COLOR_NIX_BLUE_DARK}re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_RESET} ${COLOR_CYAN}--bare${COLOR_RESET}"
 else
   echo -e "${COLOR_YELLOW}⚠️ Bootstrap completed with issues for 🚀 ${COLOR_NIX_BLUE_DARK}Re${COLOR_NIX_BLUE_LIGHT}nix${COLOR_YELLOW}. darwin-rebuild exit code:${COLOR_RESET} ${COLOR_MAGENTA}$DARWIN_SWITCH_EXIT${COLOR_RESET}"
