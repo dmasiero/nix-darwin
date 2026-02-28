@@ -2,11 +2,11 @@
 
 buildNpmPackage rec {
   pname = "pi-coding-agent";
-  version = "0.55.1";
+  version = "0.55.3";
 
   src = fetchurl {
     url = "https://registry.npmjs.org/@mariozechner/pi-coding-agent/-/pi-coding-agent-${version}.tgz";
-    hash = "sha256-+gUj3BPFAmxqkeNcYLg1J1iXAjEdWpByqX4Ixyc4NmE=";
+    hash = "sha256-bpUWkBM3a69WbO3BPWDbrhdfIk4J4mY/JYdBYoklKYE=";
   };
 
   sourceRoot = "package";
@@ -17,7 +17,7 @@ buildNpmPackage rec {
     cp ${./pi-coding-agent-package-lock.json} package-lock.json
   '';
 
-  npmDepsHash = "sha256-qfXL8XMq6rHPgYo+6x6hpdlWzMCEq1flCyhn4PLk9rc=";
+  npmDepsHash = "sha256-YDxknnToULYNKfnR93vP4nXg+D8wxyYpIswtvNc5J20=";
 
   # The npm tarball ships pre-built JS in dist/, no build step needed
   dontNpmBuild = true;
