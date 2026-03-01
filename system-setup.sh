@@ -87,13 +87,14 @@ echo "4. Clone ~/nix (or pull latest) and switch origin to SSH."
 echo "5. Preflight-check custom package versions and optionally update package files."
 echo "6. Clone ~/dotfiles using the temporary key."
 echo "7. Link ~/.ssh to ~/dotfiles/ssh, adjust file permissions and load keys into Apple Keychain."
-echo "8. Clone ~/Dev/masiero/smanager using the temporary key."
-echo "9. Back up /etc/zshenv for nix-darwin activation."
-echo "10. Run darwin-rebuild switch from ~/nix#thismac."
-echo "11. Disable macOS Tips popups/notifications."
-echo "12. Apply the local user profile photo from repo assets."
-echo "13. Restart Dock so shortcut changes take effect."
-echo "14. Set macOS to Dark Mode and apply the wallpaper."
+echo "8. Import and always trust internal certs into the System Keychain."
+echo "9. Clone ~/Dev/masiero/smanager using the temporary key."
+echo "10. Back up /etc/zshenv for nix-darwin activation."
+echo "11. Run darwin-rebuild switch from ~/nix#thismac."
+echo "12. Disable macOS Tips popups/notifications."
+echo "13. Apply the local user profile photo from repo assets."
+echo "14. Restart Dock so shortcut changes take effect."
+echo "15. Set macOS to Dark Mode and apply the wallpaper."
 echo ""
 
 # Prompt user to continue or exit
@@ -265,6 +266,27 @@ if [ -e "$HOME/.ssh" ] && command -v ssh-add >/dev/null 2>&1; then
       ssh-add --apple-use-keychain "$key_path" || true
     fi
   done
+fi
+
+print_separator
+
+# Import and always trust internal wildcard cert in System Keychain
+CERT_FILE="$DOTFILES_DIR/certs/wildcard.masiero.internal.crt"
+SYSTEM_KEYCHAIN="/Library/Keychains/System.keychain"
+
+if [ -f "$CERT_FILE" ]; then
+  echo -e "${COLOR_GREEN}Importing and trusting wildcard.masiero.internal certificate in System Keychain...${COLOR_RESET}"
+
+  CERT_SHA1="$(/usr/bin/openssl x509 -in "$CERT_FILE" -noout -fingerprint -sha1 2>/dev/null | /usr/bin/awk -F= '{print $2}' | /usr/bin/tr -d ':')"
+
+  if [ -n "$CERT_SHA1" ] && /usr/bin/security find-certificate -Z -a "$SYSTEM_KEYCHAIN" 2>/dev/null | /usr/bin/grep -q "$CERT_SHA1"; then
+    echo -e "${COLOR_DIM}Certificate already present in System Keychain; skipping import.${COLOR_RESET}"
+  else
+    sudo /usr/bin/security add-trusted-cert -d -r trustAsRoot -p ssl -k "$SYSTEM_KEYCHAIN" "$CERT_FILE" || \
+      echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} failed to import/trust certificate ${COLOR_CYAN}$CERT_FILE${COLOR_RESET}."
+  fi
+else
+  echo -e "${COLOR_YELLOW}Warning:${COLOR_RESET} certificate not found at ${COLOR_CYAN}$CERT_FILE${COLOR_RESET}; skipping Keychain import."
 fi
 
 print_separator
