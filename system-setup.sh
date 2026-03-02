@@ -257,6 +257,7 @@ if [ -e "$HOME/.ssh" ] && command -v ssh-add >/dev/null 2>&1; then
   KEYCHAIN_KEYS=(
     "$HOME/.ssh/github-dmasiero"
     "$HOME/.ssh/gitea_masiero_doug"
+    "$HOME/.ssh/DM-20260211"
     "$HOME/.ssh/DMMF-20211104"
     "$HOME/.ssh/id_DAM_20191006"
     "$HOME/.ssh/batman_rsa"

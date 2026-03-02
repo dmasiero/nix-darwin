@@ -45,9 +45,18 @@
                 wvous-tl-corner = 1;
                 wvous-tr-corner = 10;
                 wvous-bl-corner = 1;
-                wvous-br-corner = 12;
+                wvous-br-corner = 14;
               };
-              CustomUserPreferences = { } // disabledHotkeysSettings;
+              CustomUserPreferences = lib.recursiveUpdate disabledHotkeysSettings {
+                NSGlobalDomain = {
+                  # Captured from current host on 2026-03-02
+                  "com.apple.trackpad.scaling" = 2;
+                  "com.apple.mouse.scaling" = 2;
+                };
+                "com.apple.dock" = {
+                  wvous-br-modifier = 0;
+                };
+              };
             };
 
             activationScripts.postActivation.text = ''
@@ -259,19 +268,6 @@
                         bass source ~/Dev/masiero/smanager/smanager
                       end
 
-                      if test -z "$TMUX"
-                          set -l _is_ssh 0
-                          test -n "$SSH_TTY"; and set _is_ssh 1
-                          test -n "$SSH_CONNECTION"; and set _is_ssh 1
-                          test -n "$SSH_CLIENT"; and set _is_ssh 1
-                          if test $_is_ssh -eq 1
-                              if tmux has-session 2>/dev/null
-                                  exec tmux attach-session
-                              else
-                                  exec tmux new-session
-                              end
-                          end
-                      end
                     '';
 
                     functions = {
