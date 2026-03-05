@@ -52,6 +52,21 @@
                   # Captured from current host on 2026-03-02
                   "com.apple.trackpad.scaling" = 2;
                   "com.apple.mouse.scaling" = 2;
+
+                  # Disable automatic text substitutions globally.
+                  NSAutomaticQuoteSubstitutionEnabled = false;
+                  NSAutomaticDashSubstitutionEnabled = false;
+                  NSAutomaticTextReplacementEnabled = false;
+                  NSTextSmartInsertDeleteEnabled = false;
+
+                  # Remove built-in/user text replacements (e.g. omw -> On my way!)
+                  NSUserDictionaryReplacementItems = [ ];
+                };
+                "com.apple.messages.text" = {
+                  EmojiReplacement = false;
+                  SmartDashes = false;
+                  SmartInsertDelete = false;
+                  SmartQuotes = false;
                 };
                 "com.apple.dock" = {
                   wvous-br-modifier = 0;
