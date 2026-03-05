@@ -5,7 +5,7 @@
     nixpkgs.url = "github:NixOS/nixpkgs/nixpkgs-unstable";
     nix-darwin.url = "github:nix-darwin/nix-darwin/master";
     nix-darwin.inputs.nixpkgs.follows = "nixpkgs";
-    home-manager.url = "https://flakehub.com/f/nix-community/home-manager/0.2505.4807.tar.gz";
+    home-manager.url = "github:nix-community/home-manager/master";
     home-manager.inputs.nixpkgs.follows = "nixpkgs";
   };
 
@@ -406,7 +406,7 @@
                       oil-nvim
                     ];
 
-                    extraLuaConfig = ''
+                    initLua = ''
                       vim.keymap.set({ "n", "v" }, "<Space>", "<Nop>", { silent = true })
                       vim.g.mapleader = " "
                       vim.g.maplocalleader = " "
@@ -571,51 +571,58 @@
 
                   programs.ssh = {
                     enable = true;
+                    enableDefaultConfig = false;
                     matchBlocks = {
-                      "github.com" = {
-                        extraOptions = {
-                          AddKeysToAgent = "yes";
-                          HostkeyAlgorithms = "+ssh-rsa";
-                          PubkeyAcceptedAlgorithms = "+ssh-rsa";
-                          UseKeychain = "yes";
-                        };
-                        identityFile = [ "~/.ssh/github-dmasiero" ];
-                      };
-                      "gitea.masiero.internal" = {
-                        user = "git";
-                        port = 2222;
-                        extraOptions = {
-                          AddKeysToAgent = "yes";
-                          IdentitiesOnly = "yes";
-                          UseKeychain = "yes";
-                        };
-                        identityFile = [ "~/.ssh/gitea_masiero_doug" ];
-                      };
                       "*" = {
-                        extraOptions = {
-                          IgnoreUnknown = "UseKeychain,AddKeysToAgent";
-                          AddKeysToAgent = "yes";
-                          HostkeyAlgorithms = "+ssh-rsa";
-                          PubkeyAcceptedAlgorithms = "+ssh-rsa";
-                          IdentitiesOnly = "yes";
-                          LogLevel = "ERROR";
-                          UseKeychain = "yes";
-                        };
                         identityFile = [
                           "~/.ssh/DM-20260211"
                           "~/.ssh/batman_rsa"
                           "~/.ssh/DMMF-20211104"
                           "~/.ssh/id_DAM_20191006"
                         ];
+                        extraOptions = {
+                          AddKeysToAgent = "yes";
+                          HostkeyAlgorithms = "+ssh-rsa";
+                          IdentitiesOnly = "no";
+                          IgnoreUnknown = "UseKeychain,AddKeysToAgent";
+                          LogLevel = "ERROR";
+                          PubkeyAcceptedAlgorithms = "+ssh-rsa";
+                          UseKeychain = "yes";
+                          ForwardAgent = "no";
+                          Compression = "no";
+                          ServerAliveInterval = "0";
+                          ServerAliveCountMax = "3";
+                          HashKnownHosts = "no";
+                          UserKnownHostsFile = "~/.ssh/known_hosts";
+                        };
+                      };
+                      "gitea.masiero.internal" = {
+                        user = "git";
+                        port = 2222;
+                        identityFile = [ "~/.ssh/gitea_masiero_doug" ];
+                        extraOptions = {
+                          AddKeysToAgent = "yes";
+                          IdentitiesOnly = "yes";
+                          UseKeychain = "yes";
+                        };
+                      };
+                      "github.com" = {
+                        identityFile = [ "~/.ssh/github-dmasiero" ];
+                        extraOptions = {
+                          AddKeysToAgent = "yes";
+                          HostkeyAlgorithms = "+ssh-rsa";
+                          PubkeyAcceptedAlgorithms = "+ssh-rsa";
+                          UseKeychain = "yes";
+                        };
                       };
                     };
                   };
 
                   programs.git = {
                     enable = true;
-                    userName = "Doug Masiero";
-                    userEmail = "doug@masie.ro";
-                    extraConfig = {
+                    settings = {
+                      user.name = "Doug Masiero";
+                      user.email = "doug@masie.ro";
                       init.defaultBranch = "main";
                       pull.rebase = false;
                       color.ui = "auto";
