@@ -113,6 +113,7 @@
             brews = [
               "sst/tap/opencode"
               "pi-coding-agent"
+              "trzsz-ssh"
             ];
             casks = [
               "ghostty"
@@ -182,7 +183,6 @@
                       wget
                       whois
                     ]
-                    ++ lib.optionals (builtins.hasAttr "trzsz-ssh" pkgs) [ pkgs."trzsz-ssh" ]
                     ++ lib.optionals (builtins.hasAttr "puppet-bolt" pkgs) [ pkgs."puppet-bolt" ];
 
                   fonts.fontconfig.enable = true;
