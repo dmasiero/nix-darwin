@@ -134,6 +134,7 @@
               "ghostty"
               "helium-browser"
               "raycast"
+              "kitlangton-hex"
               "discord"
               "telegram"
               "orbstack"
